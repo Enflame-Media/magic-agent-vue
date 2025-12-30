@@ -1,17 +1,50 @@
 /**
- * @happy-vue/protocol - Shared protocol types
+ * @happy-vue/protocol - Shared protocol types for Happy Vue.js apps
  *
- * This package is a port of @happy/protocol for use in Vue.js apps.
- * It provides Zod schemas for API updates, ephemeral events, and shared types.
+ * This package provides Zod schemas and TypeScript types for the Happy sync protocol.
+ * It serves as the single source of truth for:
+ * - Update events (persistent state changes)
+ * - Ephemeral events (real-time status updates)
+ * - Payload wrappers (sequencing containers)
+ * - Common types (GitHubProfile, ImageRef, etc.)
  *
- * The schemas will be synced from packages/@happy/protocol as the
- * migration progresses.
+ * @example
+ * ```typescript
+ * import { ApiUpdateSchema, type ApiUpdate } from '@happy-vue/protocol';
+ *
+ * // Validate incoming update
+ * const result = ApiUpdateSchema.safeParse(data);
+ * if (result.success) {
+ *     const update: ApiUpdate = result.data;
+ *     switch (update.t) {
+ *         case 'new-message':
+ *             console.log('Session:', update.sid);
+ *             break;
+ *         // ...
+ *     }
+ * }
+ * ```
+ *
+ * @packageDocumentation
  */
 
-export const VERSION = '0.0.1';
+// Validation constraints (security-focused limits)
+export * from './constraints';
 
-/**
- * Placeholder for protocol schemas
- * These will be ported from @happy/protocol as the migration progresses.
- */
-export {};
+// Common types used across the protocol
+export * from './common';
+
+// Update event schemas (persistent)
+export * from './updates';
+
+// Ephemeral event schemas (transient)
+export * from './ephemeral';
+
+// Payload wrapper schemas
+export * from './payloads';
+
+// MCP state schemas for CLI-to-App sync
+export * from './mcp';
+
+// Type-safe accessor helpers for session and machine IDs
+export * from './helpers';
