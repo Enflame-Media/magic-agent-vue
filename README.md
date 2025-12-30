@@ -1,0 +1,105 @@
+# Happy Vue
+
+Vue.js + NativeScript monorepo for the Happy mobile and web client.
+
+> **Happy** is a mobile and web client for Claude Code and Codex, enabling remote control and session sharing across devices with end-to-end encryption.
+
+## Project Structure
+
+```
+happy-vue/
+├── apps/
+│   ├── web/           # Vue.js + Vite web application (Phase 1)
+│   └── mobile/        # NativeScript-Vue mobile application (Phase 2)
+├── packages/
+│   ├── shared/        # Shared composables and utilities
+│   └── protocol/      # Port of @happy/protocol (Zod schemas)
+├── .github/
+│   └── workflows/     # CI/CD pipelines
+├── package.json       # Root workspace configuration
+├── pnpm-workspace.yaml
+├── tsconfig.base.json # Shared TypeScript configuration
+├── CLAUDE.md          # AI assistant guidelines
+└── README.md          # This file
+```
+
+## Prerequisites
+
+- **Node.js**: 20+ LTS
+- **pnpm**: 9.x (`npm install -g pnpm`)
+- For mobile development:
+  - **Android**: Android Studio + Android SDK
+  - **iOS**: Xcode (macOS only)
+
+## Getting Started
+
+```bash
+# Install dependencies
+pnpm install
+
+# Run web development server
+pnpm dev:web
+
+# Run mobile development
+pnpm dev:mobile
+
+# Type check all packages
+pnpm typecheck
+
+# Build all packages
+pnpm build
+```
+
+## Packages
+
+### `@happy-vue/web`
+
+Vue.js + Vite web application. Features:
+- PWA support
+- Responsive design
+- Shared codebase with mobile
+
+### `@happy-vue/mobile`
+
+NativeScript-Vue mobile application. Features:
+- Native iOS and Android
+- Shared business logic with web
+- Native UI components
+
+### `@happy-vue/shared`
+
+Shared utilities and composables used by both apps:
+- Vue composables
+- Utility functions
+- Type definitions
+
+### `@happy-vue/protocol`
+
+Port of `@happy/protocol` with Zod schemas for:
+- API updates
+- Ephemeral events
+- Shared types
+
+## Migration Status
+
+This repository is part of the Vue.js migration from React Native.
+
+| Phase | Description | Status |
+|-------|-------------|--------|
+| 0 | Monorepo setup | ✅ Complete |
+| 1 | Web app implementation | 🔜 Planned |
+| 2 | Mobile app implementation | 🔜 Planned |
+| 3 | Integration testing | 🔜 Planned |
+| 4 | Production deployment | 🔜 Planned |
+
+See [HAP-660](https://linear.app/enflame-media/issue/HAP-660) for the migration epic.
+
+## Related Projects
+
+- [happy](https://github.com/Enflame-Media/happy) - React Native app (being replaced)
+- [happy-cli](https://github.com/Enflame-Media/happy-cli) - CLI wrapper for Claude Code
+- [happy-server-workers](https://github.com/Enflame-Media/happy-server-workers) - Backend API
+
+## License
+
+MIT

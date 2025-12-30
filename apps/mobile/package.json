@@ -1,0 +1,22 @@
+{
+  "name": "@happy-vue/mobile",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Happy NativeScript-Vue mobile application",
+  "scripts": {
+    "dev": "echo 'Mobile app not yet implemented - see Phase 2'",
+    "build": "echo 'Mobile app not yet implemented - see Phase 2'",
+    "typecheck": "tsc --noEmit",
+    "lint": "echo 'Linting not yet configured'",
+    "lint:fix": "echo 'Linting not yet configured'",
+    "clean": "rm -rf dist platforms"
+  },
+  "dependencies": {
+    "@happy-vue/shared": "workspace:*",
+    "@happy-vue/protocol": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@happy-vue/shared": ["../../packages/shared/src"],
+      "@happy-vue/shared/*": ["../../packages/shared/src/*"],
+      "@happy-vue/protocol": ["../../packages/protocol/src"],
+      "@happy-vue/protocol/*": ["../../packages/protocol/src/*"]
+    }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "platforms"]
+}

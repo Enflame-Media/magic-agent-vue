@@ -1,0 +1,35 @@
+{
+  "name": "happy-vue",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@9.15.4",
+  "description": "Happy Vue.js monorepo - Web and mobile client for Claude Code remote control",
+  "scripts": {
+    "dev:web": "pnpm --filter @happy-vue/web dev",
+    "dev:mobile": "pnpm --filter @happy-vue/mobile dev",
+    "build": "pnpm -r build",
+    "build:web": "pnpm --filter @happy-vue/web build",
+    "build:mobile": "pnpm --filter @happy-vue/mobile build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint",
+    "lint:fix": "pnpm -r lint:fix",
+    "test": "pnpm -r test",
+    "clean": "pnpm -r clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "keywords": [
+    "happy",
+    "vue",
+    "nativescript",
+    "monorepo",
+    "claude-code"
+  ],
+  "license": "MIT"
+}

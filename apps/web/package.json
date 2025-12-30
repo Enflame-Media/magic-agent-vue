@@ -1,0 +1,22 @@
+{
+  "name": "@happy-vue/web",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Happy Vue.js web application",
+  "scripts": {
+    "dev": "echo 'Web app not yet implemented - see Phase 1'",
+    "build": "echo 'Web app not yet implemented - see Phase 1'",
+    "typecheck": "tsc --noEmit",
+    "lint": "echo 'Linting not yet configured'",
+    "lint:fix": "echo 'Linting not yet configured'",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@happy-vue/shared": "workspace:*",
+    "@happy-vue/protocol": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}
