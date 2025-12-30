@@ -17,7 +17,7 @@ happy-vue/
 ├── .github/
 │   └── workflows/     # CI/CD pipelines
 ├── package.json       # Root workspace configuration
-├── pnpm-workspace.yaml
+├── .yarnrc.yml        # Yarn v4 configuration
 ├── tsconfig.base.json # Shared TypeScript configuration
 ├── CLAUDE.md          # AI assistant guidelines
 └── README.md          # This file
@@ -26,7 +26,7 @@ happy-vue/
 ## Prerequisites
 
 - **Node.js**: 20+ LTS
-- **pnpm**: 9.x (`npm install -g pnpm`)
+- **Yarn**: v4 (via Corepack: `corepack enable`)
 - For mobile development:
   - **Android**: Android Studio + Android SDK
   - **iOS**: Xcode (macOS only)
@@ -34,20 +34,23 @@ happy-vue/
 ## Getting Started
 
 ```bash
+# Enable Corepack (provides Yarn v4)
+corepack enable
+
 # Install dependencies
-pnpm install
+yarn install
 
 # Run web development server
-pnpm dev:web
+yarn dev:web
 
 # Run mobile development
-pnpm dev:mobile
+yarn dev:mobile
 
 # Type check all packages
-pnpm typecheck
+yarn typecheck
 
 # Build all packages
-pnpm build
+yarn build
 ```
 
 ## Packages

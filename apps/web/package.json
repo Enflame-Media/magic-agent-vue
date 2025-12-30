@@ -13,8 +13,8 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@happy-vue/shared": "workspace:*",
-    "@happy-vue/protocol": "workspace:*"
+    "@happy-vue/protocol": "workspace:*",
+    "@happy-vue/shared": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.7.2"

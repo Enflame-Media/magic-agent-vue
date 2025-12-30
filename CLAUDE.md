@@ -18,8 +18,8 @@ happy-vue/
 ├── packages/
 │   ├── shared/        # Shared composables, utilities
 │   └── protocol/      # Port of @happy/protocol
-├── package.json       # Root workspace config
-├── pnpm-workspace.yaml
+├── package.json       # Root workspace config (yarn workspaces)
+├── .yarnrc.yml        # Yarn v4 configuration
 └── tsconfig.base.json
 ```
 
@@ -35,20 +35,23 @@ All packages use the `@happy-vue/` scope:
 
 ### Package Manager
 
-**Always use pnpm** (not npm or yarn):
+**Always use yarn v4** (not npm or pnpm):
 
 ```bash
+# Enable Corepack first (provides yarn v4)
+corepack enable
+
 # Install dependencies
-pnpm install
+yarn install
 
 # Add a dependency to a specific package
-pnpm --filter @happy-vue/web add vue
+yarn workspace @happy-vue/web add vue
 
 # Run a script in a specific package
-pnpm --filter @happy-vue/web dev
+yarn workspace @happy-vue/web dev
 
 # Run a script in all packages
-pnpm -r build
+yarn workspaces foreach -A run build
 ```
 
 ### TypeScript
@@ -76,21 +79,21 @@ Standard path alias pattern across all packages:
 
 ```bash
 # Development
-pnpm dev:web          # Start web dev server
-pnpm dev:mobile       # Start mobile dev
+yarn dev:web          # Start web dev server
+yarn dev:mobile       # Start mobile dev
 
 # Building
-pnpm build            # Build all packages
-pnpm build:web        # Build web only
-pnpm build:mobile     # Build mobile only
+yarn build            # Build all packages
+yarn build:web        # Build web only
+yarn build:mobile     # Build mobile only
 
 # Quality
-pnpm typecheck        # Type check all packages
-pnpm lint             # Lint all packages
-pnpm test             # Run all tests
+yarn typecheck        # Type check all packages
+yarn lint             # Lint all packages
+yarn test             # Run all tests
 
 # Maintenance
-pnpm clean            # Clean all build artifacts
+yarn clean            # Clean all build artifacts
 ```
 
 ## Key Patterns
@@ -121,7 +124,7 @@ import { ApiUpdateSchema, type ApiUpdate } from '@happy-vue/protocol';
 
 When working on the mobile app:
 
-- `shamefully-hoist=true` is required in `.npmrc`
+- `nodeLinker: node-modules` is set in `.yarnrc.yml` for NativeScript compatibility
 - Platform-specific code uses `.android.ts` / `.ios.ts` suffixes
 - Native views are in `App_Resources/`
 
