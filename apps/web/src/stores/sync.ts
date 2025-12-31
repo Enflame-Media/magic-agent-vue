@@ -18,8 +18,15 @@ import { ref, computed } from 'vue';
 
 /**
  * Possible sync connection states
+ *
+ * - disconnected: Not connected to the server
+ * - connecting: Establishing WebSocket connection
+ * - authenticating: WebSocket open, waiting for auth confirmation (HAP-360/HAP-375)
+ * - connected: Authenticated and receiving updates
+ * - reconnecting: Temporarily disconnected, attempting to reconnect
+ * - error: Connection failed with an error
  */
-export type SyncStatus = 'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'error';
+export type SyncStatus = 'disconnected' | 'connecting' | 'authenticating' | 'connected' | 'reconnecting' | 'error';
 
 export const useSyncStore = defineStore('sync', () => {
     // ─────────────────────────────────────────────────────────────────────────
@@ -63,6 +70,8 @@ export const useSyncStore = defineStore('sync', () => {
                 return 'Disconnected';
             case 'connecting':
                 return 'Connecting...';
+            case 'authenticating':
+                return 'Authenticating...';
             case 'connected':
                 return 'Connected';
             case 'reconnecting':
