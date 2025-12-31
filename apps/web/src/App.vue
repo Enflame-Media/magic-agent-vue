@@ -3,79 +3,84 @@
  * Root Vue component for Happy web application
  *
  * Renders the router-view for client-side navigation.
+ * Includes dark mode toggle and Sonner toast provider.
  */
+import { Toaster } from '@/components/ui/sonner';
+import { Button } from '@/components/ui/button';
+import { useDarkMode } from '@/composables/useDarkMode';
+
+const { isDark, toggle } = useDarkMode();
 </script>
 
 <template>
-  <div id="happy-app">
-    <header>
-      <h1>Happy</h1>
-      <p>Remote control for Claude Code</p>
+  <!-- Sonner toast provider for notifications -->
+  <Toaster />
+
+  <div id="happy-app" class="max-w-5xl mx-auto p-8 text-center min-h-screen">
+    <header class="mb-8 flex items-center justify-between">
+      <div class="text-left">
+        <h1
+          class="text-5xl font-bold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent"
+        >
+          Happy
+        </h1>
+        <p class="text-muted-foreground text-lg mt-1">
+          Remote control for Claude Code
+        </p>
+      </div>
+
+      <!-- Dark mode toggle button -->
+      <Button
+        variant="outline"
+        size="icon"
+        :aria-label="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+        @click="toggle"
+      >
+        <!-- Sun icon (shown in dark mode) -->
+        <svg
+          v-if="isDark"
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="transition-transform"
+        >
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2v2" />
+          <path d="M12 20v2" />
+          <path d="m4.93 4.93 1.41 1.41" />
+          <path d="m17.66 17.66 1.41 1.41" />
+          <path d="M2 12h2" />
+          <path d="M20 12h2" />
+          <path d="m6.34 17.66-1.41 1.41" />
+          <path d="m19.07 4.93-1.41 1.41" />
+        </svg>
+        <!-- Moon icon (shown in light mode) -->
+        <svg
+          v-else
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="transition-transform"
+        >
+          <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+        </svg>
+      </Button>
     </header>
+
     <main>
       <RouterView />
     </main>
   </div>
 </template>
-
-<style>
-:root {
-  --color-background: #0f0f0f;
-  --color-text: #ffffff;
-  --color-text-muted: #888888;
-  --color-primary: #646cff;
-  --color-primary-hover: #535bf2;
-}
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  background-color: var(--color-background);
-  color: var(--color-text);
-  min-height: 100vh;
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-#happy-app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
-}
-
-header {
-  margin-bottom: 2rem;
-}
-
-header h1 {
-  font-size: 3rem;
-  font-weight: 700;
-  background: linear-gradient(135deg, var(--color-primary), #a855f7);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-header p {
-  color: var(--color-text-muted);
-  font-size: 1.125rem;
-  margin-top: 0.5rem;
-}
-
-a {
-  color: var(--color-primary);
-  text-decoration: none;
-  transition: color 0.2s;
-}
-
-a:hover {
-  color: var(--color-primary-hover);
-}
-</style>
