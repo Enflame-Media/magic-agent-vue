@@ -91,3 +91,74 @@ export function signDetached(message: Uint8Array, secretKey: Uint8Array): Uint8A
 export function randomBytes(length: number): Uint8Array {
   return crypto.getRandomValues(new Uint8Array(length));
 }
+
+/**
+ * Encrypt data with box encryption (anonymous/sealed box pattern)
+ *
+ * Output format: ephemeral public key (32 bytes) + nonce (24 bytes) + ciphertext
+ * This format is compatible with the CLI's encryptBox function.
+ *
+ * @param data - The data to encrypt
+ * @param recipientPublicKey - The recipient's public key (32 bytes)
+ * @returns Encrypted bundle as Uint8Array
+ */
+export function encryptBox(
+  data: Uint8Array,
+  recipientPublicKey: Uint8Array
+): Uint8Array {
+  const NONCE_BYTES = nacl.box.nonceLength; // 24
+
+  // Generate ephemeral keypair for this encryption
+  const ephemeralKeypair = nacl.box.keyPair();
+
+  // Generate random nonce
+  const nonce = randomBytes(NONCE_BYTES);
+
+  // Encrypt the data
+  const ciphertext = nacl.box(data, nonce, recipientPublicKey, ephemeralKeypair.secretKey);
+
+  // Bundle format: ephemeral public key (32 bytes) + nonce (24 bytes) + ciphertext
+  const result = new Uint8Array(
+    ephemeralKeypair.publicKey.length + nonce.length + ciphertext.length
+  );
+  result.set(ephemeralKeypair.publicKey, 0);
+  result.set(nonce, ephemeralKeypair.publicKey.length);
+  result.set(ciphertext, ephemeralKeypair.publicKey.length + nonce.length);
+
+  return result;
+}
+
+/**
+ * Encrypt a string message with box encryption
+ *
+ * Convenience wrapper that handles UTF-8 encoding.
+ *
+ * @param message - The string message to encrypt
+ * @param recipientPublicKey - The recipient's public key (32 bytes)
+ * @returns Encrypted bundle as Uint8Array
+ */
+export function encryptBoxString(
+  message: string,
+  recipientPublicKey: Uint8Array
+): Uint8Array {
+  const messageBytes = new TextEncoder().encode(message);
+  return encryptBox(messageBytes, recipientPublicKey);
+}
+
+/**
+ * Decrypt box-encrypted data and return as string
+ *
+ * Convenience wrapper that handles UTF-8 decoding.
+ *
+ * @param encryptedBundle - The encrypted data bundle
+ * @param recipientSecretKey - The recipient's secret key
+ * @returns Decrypted string or null if decryption fails
+ */
+export function decryptBoxString(
+  encryptedBundle: Uint8Array,
+  recipientSecretKey: Uint8Array
+): string | null {
+  const decrypted = decryptBox(encryptedBundle, recipientSecretKey);
+  if (!decrypted) return null;
+  return new TextDecoder().decode(decrypted);
+}

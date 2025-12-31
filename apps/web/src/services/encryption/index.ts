@@ -1,0 +1,11 @@
+/**
+ * Encryption services module
+ *
+ * Provides E2E encryption capabilities for the Happy web app:
+ * - Box encryption (NaCl) compatible with CLI
+ * - LRU caching for decrypted data
+ * - Secure key storage via IndexedDB
+ */
+
+export { EncryptionCache, encryptionCache } from './EncryptionCache';
+export { keyStorage, type StoredKeyPair, type KeyPair } from './KeyStorage';
