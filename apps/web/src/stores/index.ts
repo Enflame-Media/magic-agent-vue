@@ -12,6 +12,7 @@
  * - messages: Messages grouped by session
  * - settings: User preferences
  * - ui: UI state (modals, toasts, navigation)
+ * - voice: Voice assistant state (ElevenLabs)
  *
  * @example
  * ```typescript
@@ -63,3 +64,19 @@ export {
     type Toast,
     type SidebarState,
 } from './ui';
+
+export { useVoiceStore } from './voice';
+
+export {
+    usePurchasesStore,
+    type PurchaseStatus,
+    type PurchaseErrorInfo,
+} from './purchases';
+
+export {
+    useArtifactsStore,
+    type DecryptedArtifact,
+    type ArtifactHeader,
+    type ArtifactFileType,
+    type FileTreeNode,
+} from './artifacts';

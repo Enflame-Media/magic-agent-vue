@@ -7,8 +7,8 @@
 
 export const VERSION = '0.0.1';
 
-/**
- * Placeholder for shared utilities
- * These will be populated as the migration progresses.
- */
-export {};
+// ─────────────────────────────────────────────────────────────────────────────
+// Purchases Module
+// ─────────────────────────────────────────────────────────────────────────────
+
+export * from './purchases';
