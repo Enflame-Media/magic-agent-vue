@@ -311,11 +311,11 @@ export function useLocale(): UseLocaleReturn {
     if (bytes === 0) return '0 Bytes';
 
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'] as const;
+    const sizes: readonly string[] = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
 
     const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), sizes.length - 1);
     const value = bytes / Math.pow(k, i);
-    const unit = sizes[i];
+    const unit = sizes[i] ?? 'Bytes';
 
     return `${formatNumber(value, 'decimal')} ${unit}`;
   }
