@@ -29,7 +29,8 @@
     "@nativescript/core": "~8.8.0",
     "@nstudio/nativescript-barcodescanner": "^5.0.1",
     "nativescript-vue": "^3.0.0-rc.3",
-    "pinia": "^2.3.0"
+    "pinia": "^2.3.0",
+    "zod": "^3.24.0"
   },
   "devDependencies": {
     "@nativescript/types": "~8.8.0",
