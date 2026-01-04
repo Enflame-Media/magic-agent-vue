@@ -6,8 +6,10 @@
  * - Friends list (accepted friends with online status)
  * - Requests (incoming and outgoing friend requests)
  * - Search (find new friends by username)
+ * - Scan QR (add friends via QR code)
  *
  * @see HAP-717 - Implement friends UI for happy-vue web app
+ * @see HAP-684 - Phase 4: Implement Friends and Social Features
  */
 
 import { ref, onMounted, computed } from 'vue';
@@ -22,6 +24,7 @@ import UserProfileCard from '@/components/app/UserProfileCard.vue';
 import FriendRequestCard from '@/components/app/FriendRequestCard.vue';
 import UserSearch from '@/components/app/UserSearch.vue';
 import EmptyState from '@/components/app/EmptyState.vue';
+import QRScanner from '@/components/app/QRScanner.vue';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Composables
@@ -37,6 +40,8 @@ const {
   loadFriends,
   addFriend,
   removeFriend,
+  blockUser,
+  processFriendInvite,
 } = useFriends();
 
 const { setBulkStatus } = useFriendStatus();
@@ -47,6 +52,7 @@ const { setBulkStatus } = useFriendStatus();
 
 const activeTab = ref('friends');
 const processingId = ref<string | null>(null);
+const isQRScannerActive = ref(false);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Computed
@@ -118,14 +124,46 @@ async function handleRemoveFriend(userId: string): Promise<void> {
   }
 }
 
-function handleUserClick(userId: string): void {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function handleUserClick(_userId: string): void {
   // Navigate to user profile (future feature)
-  // For now, just log
-  console.debug('[FriendsView] User clicked:', userId);
+  // TODO: Implement user profile navigation
+}
+
+async function handleBlockUser(userId: string): Promise<void> {
+  processingId.value = userId;
+  try {
+    await blockUser(userId);
+    await loadFriends(); // Refresh list
+  } finally {
+    processingId.value = null;
+  }
 }
 
 function navigateToSearch(): void {
   activeTab.value = 'search';
+}
+
+function navigateToScan(): void {
+  activeTab.value = 'scan';
+  isQRScannerActive.value = true;
+}
+
+async function handleQRScan(data: string): Promise<void> {
+  // Process the scanned QR code as a friend invite
+  const success = await processFriendInvite(data);
+  if (success) {
+    // Switch to friends tab and refresh
+    activeTab.value = 'friends';
+    isQRScannerActive.value = false;
+    await loadFriends();
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function handleQRError(_err: Error): void {
+  // QR scanner handles its own error display
+  // No additional handling needed here
 }
 </script>
 
@@ -140,8 +178,8 @@ function navigateToSearch(): void {
     </div>
 
     <!-- Tabs -->
-    <Tabs v-model="activeTab" class="w-full">
-      <TabsList class="grid w-full grid-cols-3">
+    <Tabs v-model="activeTab" class="w-full" @update:model-value="(val) => isQRScannerActive = val === 'scan'">
+      <TabsList class="grid w-full grid-cols-4">
         <TabsTrigger value="friends">
           Friends
           <span
@@ -163,6 +201,9 @@ function navigateToSearch(): void {
         </TabsTrigger>
         <TabsTrigger value="search">
           Search
+        </TabsTrigger>
+        <TabsTrigger value="scan">
+          Scan
         </TabsTrigger>
       </TabsList>
 
@@ -189,12 +230,17 @@ function navigateToSearch(): void {
         <EmptyState
           v-else-if="acceptedFriends.length === 0"
           title="No friends yet"
-          description="Search for users to add as friends"
+          description="Search for users or scan a QR code to add friends"
           icon="users"
         >
-          <Button @click="navigateToSearch">
-            Find Friends
-          </Button>
+          <div class="flex gap-2">
+            <Button @click="navigateToSearch">
+              Find Friends
+            </Button>
+            <Button variant="outline" @click="navigateToScan">
+              Scan QR Code
+            </Button>
+          </div>
         </EmptyState>
 
         <!-- Friends list -->
@@ -208,6 +254,7 @@ function navigateToSearch(): void {
               :clickable="true"
               @click="handleUserClick(friend.id)"
               @remove-friend="handleRemoveFriend"
+              @block-user="handleBlockUser"
             />
           </div>
         </ScrollArea>
@@ -272,6 +319,25 @@ function navigateToSearch(): void {
       <!-- Search Tab -->
       <TabsContent value="search" class="mt-4">
         <UserSearch @select="handleUserClick" />
+      </TabsContent>
+
+      <!-- Scan QR Tab -->
+      <TabsContent value="scan" class="mt-4">
+        <Card>
+          <CardContent class="py-6">
+            <div class="text-center mb-4">
+              <h3 class="text-lg font-medium">Scan Friend's QR Code</h3>
+              <p class="text-sm text-muted-foreground">
+                Point your camera at a friend's QR code to add them
+              </p>
+            </div>
+            <QRScanner
+              :active="isQRScannerActive"
+              @scan="handleQRScan"
+              @error="handleQRError"
+            />
+          </CardContent>
+        </Card>
       </TabsContent>
     </Tabs>
   </div>

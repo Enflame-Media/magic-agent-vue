@@ -107,6 +107,8 @@ export interface UseFriendsReturn {
   addFriend: (userId: string) => Promise<UserProfile | null>;
   /** Remove friend or reject/cancel request */
   removeFriend: (userId: string) => Promise<boolean>;
+  /** Block a user - prevents them from sending requests */
+  blockUser: (userId: string) => Promise<boolean>;
   /** Search users by username */
   searchUsers: (query: string) => Promise<void>;
   /** Clear search results */
@@ -117,6 +119,8 @@ export interface UseFriendsReturn {
   updateFriend: (profile: UserProfile) => void;
   /** Remove a friend from the local cache */
   removeFriendFromCache: (userId: string) => void;
+  /** Process a friend invite link (happy://friend/add/{userId}) */
+  processFriendInvite: (inviteUrl: string) => Promise<boolean>;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -175,17 +179,17 @@ export function useFriends(): UseFriendsReturn {
 
   /** Friends with accepted status */
   const acceptedFriends = computed(() =>
-    friends.value.filter((f) => f.status === 'friend')
+    friends.value.filter((f: UserProfile) => f.status === 'friend')
   );
 
   /** Incoming friend requests (they requested us) */
   const pendingRequests = computed(() =>
-    friends.value.filter((f) => f.status === 'pending')
+    friends.value.filter((f: UserProfile) => f.status === 'pending')
   );
 
   /** Outgoing friend requests (we requested them) */
   const sentRequests = computed(() =>
-    friends.value.filter((f) => f.status === 'requested')
+    friends.value.filter((f: UserProfile) => f.status === 'requested')
   );
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -397,7 +401,7 @@ export function useFriends(): UseFriendsReturn {
    * @param userId - The user ID to find
    */
   function getFriend(userId: string): UserProfile | undefined {
-    return friends.value.find((f) => f.id === userId);
+    return friends.value.find((f: UserProfile) => f.id === userId);
   }
 
   /**
@@ -407,7 +411,7 @@ export function useFriends(): UseFriendsReturn {
    * @param profile - Updated user profile
    */
   function updateFriend(profile: UserProfile): void {
-    const index = friends.value.findIndex((f) => f.id === profile.id);
+    const index = friends.value.findIndex((f: UserProfile) => f.id === profile.id);
     if (index >= 0) {
       friends.value[index] = profile;
     } else {
@@ -421,7 +425,71 @@ export function useFriends(): UseFriendsReturn {
    * @param userId - The user ID to remove
    */
   function removeFriendFromCache(userId: string): void {
-    friends.value = friends.value.filter((f) => f.id !== userId);
+    friends.value = friends.value.filter((f: UserProfile) => f.id !== userId);
+  }
+
+  /**
+   * Block a user - prevents them from sending friend requests.
+   *
+   * @param userId - The user ID to block
+   * @returns true on success, false on failure
+   */
+  async function blockUser(userId: string): Promise<boolean> {
+    if (!token.value) {
+      toast.error('Not authenticated');
+      return false;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/v1/friends/block`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token.value}`,
+        },
+        body: JSON.stringify({ uid: userId }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to block user: ${String(response.status)}`);
+      }
+
+      // Remove from local cache
+      removeFriendFromCache(userId);
+      toast.success('User blocked');
+
+      return true;
+    } catch (err) {
+      console.error('[useFriends] Error blocking user:', err);
+      toast.error('Failed to block user');
+      return false;
+    }
+  }
+
+  /**
+   * Process a friend invite link and send a friend request.
+   * Supports both happy:// and https:// URLs.
+   *
+   * @param inviteUrl - The invite URL (happy://friend/add/{userId} or https://happy.engineering/friend/add/{userId})
+   * @returns true on success, false on failure
+   */
+  async function processFriendInvite(inviteUrl: string): Promise<boolean> {
+    // Parse the invite URL to extract user ID
+    const friendMatch = inviteUrl.match(/happy:\/\/friend\/add\/(.+)/);
+    const webMatch = inviteUrl.match(/https?:\/\/happy\.engineering\/friend\/add\/(.+)/);
+
+    const match = friendMatch ?? webMatch;
+
+    if (!match?.[1]) {
+      toast.error('Invalid friend invite link');
+      return false;
+    }
+
+    const userId = match[1];
+
+    // Send friend request
+    const result = await addFriend(userId);
+    return result !== null;
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -445,10 +513,12 @@ export function useFriends(): UseFriendsReturn {
     loadFriends,
     addFriend,
     removeFriend,
+    blockUser,
     searchUsers,
     clearSearch,
     getFriend,
     updateFriend,
     removeFriendFromCache,
+    processFriendInvite,
   };
 }

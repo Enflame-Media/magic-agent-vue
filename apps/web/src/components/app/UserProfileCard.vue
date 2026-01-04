@@ -53,6 +53,8 @@ const emit = defineEmits<{
   removeFriend: [userId: string];
   /** Cancel request button clicked */
   cancelRequest: [userId: string];
+  /** Block user button clicked */
+  blockUser: [userId: string];
 }>();
 
 // ─────────────────────────────────────────────────────────────────────────────
