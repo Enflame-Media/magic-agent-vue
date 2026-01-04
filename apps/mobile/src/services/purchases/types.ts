@@ -22,6 +22,9 @@ export {
   PaywallResult,
   PurchaseErrorCode,
   PurchaseError,
+  // Analytics exports
+  trackPurchaseEvent,
+  PurchaseAnalyticsEvent,
 } from '@happy-vue/shared';
 
 /**

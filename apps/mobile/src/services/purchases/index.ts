@@ -14,3 +14,10 @@ export {
   isPro,
   type NativeRevenueCat,
 } from './PurchaseService';
+export {
+  nativeRevenueCatAdapter,
+  transformCustomerInfo,
+  transformOfferings,
+  type NativeCustomerInfo,
+  type NativeOfferingsResponse,
+} from './NativeRevenueCatAdapter';

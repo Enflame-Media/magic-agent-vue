@@ -4,8 +4,7 @@
  * Mobile purchase service implementation using RevenueCat.
  * Supports both iOS (StoreKit) and Android (Google Play / Amazon).
  *
- * Note: Requires the @aspect/nativescript-purchase or equivalent plugin
- * to be installed for native RevenueCat SDK access.
+ * Uses the @mleleux/nativescript-revenuecat plugin for native SDK access.
  *
  * @example
  * ```typescript
@@ -33,7 +32,21 @@ import type {
   MobilePurchaseConfig,
   PurchaseState,
 } from './types';
-import { LogLevel, PaywallResult, PurchaseError, PurchaseErrorCode } from './types';
+import {
+  LogLevel,
+  PaywallResult,
+  PurchaseError,
+  PurchaseErrorCode,
+  trackPurchaseEvent,
+  PurchaseAnalyticsEvent,
+} from './types';
+import {
+  nativeRevenueCatAdapter,
+  transformCustomerInfo,
+  transformOfferings,
+  type NativeCustomerInfo,
+  type NativeOfferingsResponse,
+} from './NativeRevenueCatAdapter';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Global State
@@ -74,83 +87,32 @@ function updateState(updates: Partial<PurchaseState>): void {
 
   // Update isPro based on customer info
   if (updates.customerInfo !== undefined) {
-    purchaseState.isPro =
-      purchaseState.customerInfo?.entitlements?.all?.['pro']?.isActive ?? false;
+    const info = purchaseState.customerInfo;
+    purchaseState.isPro = info?.entitlements.all['pro']?.isActive ?? false;
   }
 
   notifyStateChange();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Native SDK Placeholder
+// Native SDK Interface
 // ─────────────────────────────────────────────────────────────────────────────
-
-// Note: In production, this would import from a NativeScript RevenueCat plugin.
-// Example plugins:
-// - @aspect/nativescript-purchases (if available)
-// - Custom plugin wrapping native RevenueCat SDKs
 
 /**
  * Native RevenueCat SDK contract
  *
  * This interface defines the expected API for a NativeScript RevenueCat plugin.
- * Plugin implementations should conform to this interface.
- *
- * @example
- * ```typescript
- * // In your NativeScript plugin:
- * export class RevenueCatPlugin implements NativeRevenueCat {
- *   configure(apiKey: string, appUserId?: string): void { ... }
- *   // ... implement other methods
- * }
- * ```
+ * The actual implementation is provided by NativeRevenueCatAdapter.
  */
 export interface NativeRevenueCat {
   configure(apiKey: string, appUserId?: string): void;
   getCustomerInfo(): Promise<NativeCustomerInfo>;
-  getOfferings(): Promise<NativeOfferings>;
+  getOfferings(): Promise<NativeOfferingsResponse>;
   purchasePackage(packageIdentifier: string): Promise<{ customerInfo: NativeCustomerInfo }>;
   restorePurchases(): Promise<NativeCustomerInfo>;
   syncPurchases(): Promise<void>;
   presentPaywall(): Promise<string>;
 }
-
-interface NativeCustomerInfo {
-  activeSubscriptions: string[];
-  entitlements: {
-    all: Record<string, { isActive: boolean; identifier: string }>;
-  };
-  originalAppUserId: string;
-  requestDate: string;
-}
-
-interface NativeOfferings {
-  current: NativeOffering | null;
-  all: Record<string, NativeOffering>;
-}
-
-interface NativeOffering {
-  identifier: string;
-  availablePackages: NativePackage[];
-}
-
-interface NativePackage {
-  identifier: string;
-  packageType: string;
-  product: NativeProduct;
-}
-
-interface NativeProduct {
-  identifier: string;
-  title: string;
-  description: string;
-  priceString: string;
-  price: number;
-  currencyCode: string;
-}
-
-// Note: Native SDK would be initialized by platform-specific code
-// The NativeRevenueCat interface above defines the expected contract
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Purchase Service Implementation
@@ -185,7 +147,7 @@ class PurchaseServiceImpl {
       }
 
       // Initialize native SDK
-      await this.initializeNativeSDK(apiKey, config.appUserID);
+      this.initializeNativeSDK(apiKey, config.appUserID);
 
       updateState({
         status: 'idle',
@@ -219,22 +181,19 @@ class PurchaseServiceImpl {
   /**
    * Initialize native RevenueCat SDK
    */
-  private async initializeNativeSDK(
-    _apiKey: string,
-    appUserId?: string
-  ): Promise<void> {
-    // Note: This is a placeholder. In production, this would:
-    // 1. Import the native RevenueCat plugin
-    // 2. Configure it with the API key
-    // 3. Set up listeners for customer info changes
-
-    console.log('[Purchases] Would initialize native SDK with:', {
+  private initializeNativeSDK(apiKey: string, appUserId?: string): void {
+    console.log('[Purchases] Initializing native SDK with:', {
       platform: isIOS ? 'iOS' : 'Android',
       hasAppUserId: !!appUserId,
     });
 
-    // Simulate native SDK initialization
-    // In production: nativeRevenueCat = await NativeRevenueCatPlugin.configure(_apiKey, appUserId);
+    // Configure the native RevenueCat SDK via our adapter
+    nativeRevenueCatAdapter.configure(apiKey, appUserId);
+
+    // Enable debug logs in development
+    if (__DEV__) {
+      nativeRevenueCatAdapter.setDebugLogsEnabled(true);
+    }
   }
 
   /**
@@ -244,14 +203,8 @@ class PurchaseServiceImpl {
     this.ensureConfigured();
 
     try {
-      // In production: const native = await nativeRevenueCat!.getCustomerInfo();
-      // For now, return mock data structure
-      const customerInfo: CustomerInfo = {
-        activeSubscriptions: {},
-        entitlements: { all: {} },
-        originalAppUserId: this.config?.appUserID ?? 'anonymous',
-        requestDate: new Date(),
-      };
+      const nativeInfo = await nativeRevenueCatAdapter.getCustomerInfo();
+      const customerInfo = transformCustomerInfo(nativeInfo);
 
       updateState({ customerInfo });
       return customerInfo;
@@ -271,12 +224,8 @@ class PurchaseServiceImpl {
     this.ensureConfigured();
 
     try {
-      // In production: const native = await nativeRevenueCat!.getOfferings();
-      // For now, return empty structure
-      const offerings: Offerings = {
-        current: null,
-        all: {},
-      };
+      const nativeOfferings = await nativeRevenueCatAdapter.getOfferings();
+      const offerings = transformOfferings(nativeOfferings);
 
       updateState({ offerings });
       return offerings;
@@ -347,40 +296,69 @@ class PurchaseServiceImpl {
     this.ensureConfigured();
     updateState({ status: 'purchasing', error: null });
 
-    try {
-      // In production: const result = await nativeRevenueCat!.purchasePackage(pkg.identifier);
-      console.log('[Purchases] Would purchase package:', pkg.identifier);
+    // Track purchase started
+    trackPurchaseEvent(PurchaseAnalyticsEvent.PURCHASE_STARTED, {
+      platform: 'mobile',
+      packageId: pkg.identifier,
+      productId: pkg.product.identifier,
+      price: pkg.product.price,
+      currency: pkg.product.currencyCode,
+      userId: this.config?.appUserID,
+    });
 
-      // Simulate successful purchase
-      const customerInfo: CustomerInfo = {
-        activeSubscriptions: { [pkg.product.identifier]: {} },
-        entitlements: {
-          all: {
-            pro: { isActive: true, identifier: 'pro' },
-          },
-        },
-        originalAppUserId: this.config?.appUserID ?? 'anonymous',
-        requestDate: new Date(),
-      };
+    try {
+      console.log('[Purchases] Purchasing package:', pkg.identifier);
+
+      const result = await nativeRevenueCatAdapter.purchasePackage(pkg.identifier);
+      const customerInfo = transformCustomerInfo(result.customerInfo);
 
       updateState({
         status: 'success',
         customerInfo,
       });
 
+      // Track purchase completed
+      trackPurchaseEvent(PurchaseAnalyticsEvent.PURCHASE_COMPLETED, {
+        platform: 'mobile',
+        packageId: pkg.identifier,
+        productId: pkg.product.identifier,
+        price: pkg.product.price,
+        currency: pkg.product.currencyCode,
+        userId: this.config?.appUserID,
+      });
+
       return { customerInfo };
     } catch (error) {
       // Check for user cancellation
-      if (this.isUserCancellation(error)) {
+      if (
+        error instanceof PurchaseError &&
+        error.code === PurchaseErrorCode.CANCELLED
+      ) {
+        // Track purchase cancelled
+        trackPurchaseEvent(PurchaseAnalyticsEvent.PURCHASE_CANCELLED, {
+          platform: 'mobile',
+          packageId: pkg.identifier,
+          productId: pkg.product.identifier,
+          userId: this.config?.appUserID,
+        });
         updateState({ status: 'idle' });
-        throw new PurchaseError(PurchaseErrorCode.CANCELLED, 'Purchase cancelled');
+        throw error;
       }
 
-      const purchaseError = new PurchaseError(
-        PurchaseErrorCode.UNKNOWN,
-        'Purchase failed',
-        error
-      );
+      const purchaseError =
+        error instanceof PurchaseError
+          ? error
+          : new PurchaseError(PurchaseErrorCode.UNKNOWN, 'Purchase failed', error);
+
+      // Track purchase failed
+      trackPurchaseEvent(PurchaseAnalyticsEvent.PURCHASE_FAILED, {
+        platform: 'mobile',
+        packageId: pkg.identifier,
+        productId: pkg.product.identifier,
+        errorCode: purchaseError.code,
+        errorMessage: purchaseError.message,
+        userId: this.config?.appUserID,
+      });
 
       updateState({
         status: 'error',
@@ -398,7 +376,7 @@ class PurchaseServiceImpl {
     this.ensureConfigured();
 
     try {
-      // In production: await nativeRevenueCat!.syncPurchases();
+      await nativeRevenueCatAdapter.syncPurchases();
       await this.getCustomerInfo();
     } catch (error) {
       throw new PurchaseError(
@@ -416,22 +394,41 @@ class PurchaseServiceImpl {
     this.ensureConfigured();
     updateState({ status: 'restoring', error: null });
 
+    // Track restore started
+    trackPurchaseEvent(PurchaseAnalyticsEvent.RESTORE_STARTED, {
+      platform: 'mobile',
+      userId: this.config?.appUserID,
+    });
+
     try {
-      // In production: const info = await nativeRevenueCat!.restorePurchases();
-      const customerInfo = await this.getCustomerInfo();
+      const nativeInfo = await nativeRevenueCatAdapter.restorePurchases();
+      const customerInfo = transformCustomerInfo(nativeInfo);
 
       updateState({
         status: 'success',
         customerInfo,
       });
 
+      // Track restore completed
+      const restoredCount = Object.keys(customerInfo.activeSubscriptions).length;
+      const restoredPro = customerInfo.entitlements.all['pro']?.isActive ?? false;
+      trackPurchaseEvent(PurchaseAnalyticsEvent.RESTORE_COMPLETED, {
+        platform: 'mobile',
+        userId: this.config?.appUserID,
+        restoredCount,
+        restoredPro,
+      });
+
       return customerInfo;
     } catch (error) {
-      const purchaseError = new PurchaseError(
-        PurchaseErrorCode.NETWORK_ERROR,
-        'Failed to restore purchases',
-        error
-      );
+      const purchaseError =
+        error instanceof PurchaseError
+          ? error
+          : new PurchaseError(
+              PurchaseErrorCode.NETWORK_ERROR,
+              'Failed to restore purchases',
+              error
+            );
 
       updateState({
         status: 'error',
@@ -447,26 +444,32 @@ class PurchaseServiceImpl {
    */
   setLogLevel(level: LogLevel): void {
     console.log('[Purchases] Set log level:', LogLevel[level]);
-    // In production: nativeRevenueCat?.setLogLevel(level);
+    nativeRevenueCatAdapter.setLogLevel(level);
   }
 
   /**
    * Present native paywall
+   *
+   * Note: Native paywall is not supported by the @mleleux/nativescript-revenuecat plugin.
+   * Use a custom Vue component for paywall UI instead.
    */
-  async presentPaywall(_options?: PaywallOptions): Promise<PaywallResult> {
+  presentPaywall(_options?: PaywallOptions, source?: string): PaywallResult {
     this.ensureConfigured();
 
-    try {
-      // In production: const result = await nativeRevenueCat!.presentPaywall(_options);
-      console.log('[Purchases] Would present native paywall');
+    // Track paywall presented (even though we're redirecting to Vue modal)
+    trackPurchaseEvent(PurchaseAnalyticsEvent.PAYWALL_PRESENTED, {
+      platform: 'mobile',
+      offeringId: purchaseState.offerings?.current?.identifier,
+      source,
+      userId: this.config?.appUserID,
+    });
 
-      // Native paywall would handle the full flow
-      // Return value would come from native result
-      return PaywallResult.NOT_PRESENTED;
-    } catch (error) {
-      console.error('[Purchases] Paywall error:', error);
-      return PaywallResult.ERROR;
-    }
+    // Native paywall not supported in this plugin
+    // The usePurchases composable triggers a custom Vue modal instead
+    console.log(
+      '[Purchases] Native paywall not supported. Use showPaywall() from usePurchases composable.'
+    );
+    return PaywallResult.NOT_PRESENTED;
   }
 
   /**
@@ -490,24 +493,24 @@ class PurchaseServiceImpl {
    * Check if user has entitlement
    */
   async hasEntitlement(entitlementId: string): Promise<boolean> {
-    const info = purchaseState.customerInfo;
-    if (!info) {
+    if (!purchaseState.customerInfo) {
       await this.getCustomerInfo();
     }
 
-    return purchaseState.customerInfo?.entitlements?.all?.[entitlementId]?.isActive ?? false;
+    const info = purchaseState.customerInfo;
+    return info?.entitlements.all[entitlementId]?.isActive ?? false;
   }
 
   /**
    * Check if user has active subscription
    */
   async isSubscribed(): Promise<boolean> {
-    const info = purchaseState.customerInfo;
-    if (!info) {
+    if (!purchaseState.customerInfo) {
       await this.getCustomerInfo();
     }
 
-    return Object.keys(purchaseState.customerInfo?.activeSubscriptions ?? {}).length > 0;
+    const info = purchaseState.customerInfo;
+    return Object.keys(info?.activeSubscriptions ?? {}).length > 0;
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -545,14 +548,6 @@ class PurchaseServiceImpl {
         'Purchases not configured. Call configure() first.'
       );
     }
-  }
-
-  private isUserCancellation(error: unknown): boolean {
-    if (error instanceof Error) {
-      const message = error.message.toLowerCase();
-      return message.includes('cancel') || message.includes('user cancelled');
-    }
-    return false;
   }
 }
 
