@@ -30,6 +30,9 @@ if (isIOS) {
 // RevenueCat configuration
 import { REVENUECAT_CONFIG } from '@/services/purchases/config';
 
+// i18n setup
+import { useI18nStore } from '@/i18n';
+
 // ─────────────────────────────────────────────────────────────────────────────
 // RevenueCat Initialization
 // ─────────────────────────────────────────────────────────────────────────────
@@ -77,6 +80,22 @@ const app = createApp(App);
 // Install Pinia for state management
 const pinia = createPinia();
 app.use(pinia);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// i18n Initialization
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Initialize i18n with native device language detection.
+ *
+ * This must be called after Pinia is installed since the i18n store
+ * depends on Pinia. The store detects the device language (iOS/Android)
+ * and loads any persisted language preference.
+ */
+const i18nStore = useI18nStore(pinia);
+i18nStore.initialize();
+
+console.log(`[i18n] Initialized with language: ${i18nStore.currentLanguage}`);
 
 // Start the application
 app.start();

@@ -20,6 +20,8 @@ not_found_handling = "single-page-application"
 #############################
 [env.development]
 name = "happy-vue-web-dev"
+preview_urls = false
+workers_dev = false
 
 [[env.development.routes]]
 pattern = "happy-vue-dev.enflamemedia.com"
@@ -41,6 +43,8 @@ API_BASE_URL = "https://happy-api-dev.enflamemedia.com"
 #############################
 [env.production]
 name = "happy-vue-web"
+preview_urls = false
+workers_dev = false
 
 [[env.production.routes]]
 pattern = "happy-vue.enflamemedia.com"

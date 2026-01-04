@@ -11,8 +11,11 @@ import { useAuth } from '../composables/useAuth';
 import { usePurchases } from '../composables/usePurchases';
 import AppearanceView from './settings/AppearanceView.vue';
 import AccountView from './settings/AccountView.vue';
+import LanguageView from './settings/LanguageView.vue';
+import { useI18n } from '@/i18n';
 
 const { machines } = useAuth();
+const { t, currentLanguageInfo } = useI18n();
 const { isPro, showPaywall } = usePurchases();
 
 // App version (would come from build config in production)
@@ -52,6 +55,16 @@ function navigateToAccount() {
 }
 
 /**
+ * Navigate to language settings
+ */
+function navigateToLanguage() {
+  const frame = Frame.topmost();
+  frame?.navigate({
+    create: () => LanguageView,
+  });
+}
+
+/**
  * Open external link (placeholder)
  */
 function openLink(url: string) {
@@ -82,6 +95,14 @@ function navigateToSubscription(): void {
           <StackLayout col="0">
             <Label text="Appearance" class="setting-title" />
             <Label text="Theme, fonts, and display options" class="setting-subtitle" />
+          </StackLayout>
+          <Label col="1" text="›" class="chevron" />
+        </GridLayout>
+
+        <GridLayout columns="*, auto" class="setting-item" @tap="navigateToLanguage">
+          <StackLayout col="0">
+            <Label :text="t('settings.language')" class="setting-title" />
+            <Label :text="currentLanguageInfo.nativeName" class="setting-subtitle" />
           </StackLayout>
           <Label col="1" text="›" class="chevron" />
         </GridLayout>

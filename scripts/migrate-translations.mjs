@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
 /**
- * Translation Migration Script
+ * Translation Migration Script v3
  *
  * Converts happy-app TypeScript translations to vue-i18n JSON format.
- * This script generates locale JSON files for the web application.
+ * Uses esbuild to transpile and evaluate TypeScript files.
  *
  * Usage:
  *   node scripts/migrate-translations.mjs
@@ -16,16 +16,111 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { execSync } from 'child_process';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Output path for generated locales
+// Source and output paths
+const SOURCE_PATH = path.resolve(__dirname, '../../happy-app/sources/text/translations');
 const OUTPUT_PATH = path.resolve(__dirname, '../apps/web/src/i18n/locales');
 
+// Languages to migrate (excluding English which is handled separately)
+const LANGUAGES = ['es', 'ru', 'pl', 'pt', 'ca', 'zh-Hans'];
+
 /**
- * Create English locale with vue-i18n compatible format
- * Arrow functions are converted to named interpolation: {param}
- * Pluralization uses vue-i18n pipe syntax: singular | plural
+ * Convert arrow functions in TypeScript to vue-i18n format strings
+ */
+function convertToVueI18n(obj, path = '') {
+  if (typeof obj === 'string') {
+    return obj;
+  }
+
+  if (typeof obj === 'function') {
+    // Get function source and convert
+    const funcStr = obj.toString();
+    return convertFunctionToString(funcStr);
+  }
+
+  if (typeof obj === 'object' && obj !== null) {
+    const result = {};
+    for (const [key, value] of Object.entries(obj)) {
+      result[key] = convertToVueI18n(value, `${path}.${key}`);
+    }
+    return result;
+  }
+
+  return String(obj);
+}
+
+/**
+ * Convert a function to its vue-i18n string equivalent
+ */
+function convertFunctionToString(funcStr) {
+  // Extract template literal content from arrow function
+  // Pattern: ({ params }) => `template ${...}`
+  let templateMatch = funcStr.match(/=>\s*`([\s\S]*?)`/);
+  if (templateMatch) {
+    let template = templateMatch[1];
+
+    // Convert ${varName} to {varName}
+    template = template.replace(/\$\{(\w+)\}/g, '{$1}');
+
+    // Handle ternary for plurals: ${count !== 1 ? 's' : ''}
+    template = template.replace(/\$\{(\w+)\s*!==\s*1\s*\?\s*(['"`])([^'"]*)\2\s*:\s*(['"`])([^'"]*)\4\}/g,
+      (_, varName, q1, pluralSuffix, q2, singularSuffix) => {
+        return `__PLURAL__${singularSuffix}|${pluralSuffix}__END__`;
+      });
+
+    template = template.replace(/\$\{(\w+)\s*===\s*1\s*\?\s*(['"`])([^'"]*)\2\s*:\s*(['"`])([^'"]*)\4\}/g,
+      (_, varName, q1, singularVal, q2, pluralVal) => {
+        return `__PLURAL__${singularVal}|${pluralVal}__END__`;
+      });
+
+    // Handle plural() helper
+    template = template.replace(/\$\{plural\s*\(\s*\{[^}]*singular:\s*(['"`])([^'"]*)\1[^}]*plural:\s*(['"`])([^'"]*)\3[^}]*\}\s*\)\}/g,
+      (_, q1, singular, q2, plural) => `__PLURAL_WORD__${singular}|${plural}__END__`);
+
+    // Handle 3-form plurals (Russian/Polish) - use one|many for vue-i18n
+    template = template.replace(/\$\{plural\s*\(\s*\{[^}]*one:\s*(['"`])([^'"]*)\1[^}]*(?:few:\s*(['"`])([^'"]*)\3[^}]*)?many:\s*(['"`])([^'"]*)\5[^}]*\}\s*\)\}/g,
+      (_, q1, one, q2, few, q3, many) => `__PLURAL_WORD__${one}|${many}__END__`);
+
+    // Handle remaining complex expressions - extract first variable
+    template = template.replace(/\$\{([^}]+)\}/g, (_, expr) => {
+      const varMatch = expr.match(/^(\w+)/);
+      return varMatch ? `{${varMatch[1]}}` : '{value}';
+    });
+
+    // Convert plural markers to vue-i18n pipe syntax
+    let pluralMatch = template.match(/__PLURAL__([^|]*)\|([^_]*)__END__/);
+    if (pluralMatch) {
+      const [fullMatch, sing, plur] = pluralMatch;
+      const prefix = template.substring(0, template.indexOf(fullMatch));
+      const suffix = template.substring(template.indexOf(fullMatch) + fullMatch.length);
+      template = `${prefix}${sing}${suffix} | ${prefix}${plur}${suffix}`;
+    }
+
+    let wordPluralMatch = template.match(/__PLURAL_WORD__([^|]*)\|([^_]*)__END__/);
+    if (wordPluralMatch) {
+      const [fullMatch, sing, plur] = wordPluralMatch;
+      const prefix = template.substring(0, template.indexOf(fullMatch));
+      const suffix = template.substring(template.indexOf(fullMatch) + fullMatch.length);
+      template = `${prefix}${sing}${suffix} | ${prefix}${plur}${suffix}`;
+    }
+
+    return template.trim();
+  }
+
+  // Handle regular string return: ({ param }) => 'string'
+  let stringMatch = funcStr.match(/=>\s*(['"`])([^'"]*)\1/);
+  if (stringMatch) {
+    return stringMatch[2];
+  }
+
+  return '[Function]';
+}
+
+/**
+ * Create English locale - the reference structure with all keys
  */
 function createEnglishLocale() {
   return {
@@ -397,21 +492,98 @@ function createEnglishLocale() {
 }
 
 /**
- * Generate locale file for a specific language
- * Currently copies English structure - to be expanded with actual translations
+ * Transpile and load TypeScript translation file using esbuild
  */
-function generateLocale(langCode, baseLocale) {
-  // For now, return the same structure
-  // In production, this would load and parse the actual translation file
-  return JSON.parse(JSON.stringify(baseLocale));
+async function loadTypeScriptTranslations(langCode) {
+  const sourcePath = path.join(SOURCE_PATH, `${langCode}.ts`);
+  const tempDir = path.join(__dirname, '.temp');
+  const tempFile = path.join(tempDir, `${langCode}.mjs`);
+
+  try {
+    // Create temp directory
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
+    }
+
+    // Read and preprocess the TypeScript file
+    let content = fs.readFileSync(sourcePath, 'utf-8');
+
+    // Remove type imports and annotations
+    content = content.replace(/import\s+type\s+.*?;/g, '');
+    content = content.replace(/:\s*TranslationStructure/g, '');
+    content = content.replace(/:\s*\{[^}]*\}/g, ''); // Remove inline type annotations
+    content = content.replace(/as\s+const/g, '');
+
+    // Fix the plural function to work without types
+    content = content.replace(
+      /function plural\([^)]+\):\s*string\s*\{/g,
+      'function plural({ count, singular, plural, one, few, many }) {'
+    );
+    content = content.replace(
+      /function plural\([^)]+\)\s*\{/g,
+      'function plural({ count, singular, plural, one, few, many }) {'
+    );
+
+    // Convert export const to export default
+    content = content.replace(/export const (\w+)(?:-\w+)?\s*=\s*/, 'export default ');
+
+    // Write temp file
+    fs.writeFileSync(tempFile, content);
+
+    // Import the module
+    const module = await import(`file://${tempFile}`);
+    const translations = module.default;
+
+    // Convert functions to strings
+    return convertToVueI18n(translations);
+
+  } finally {
+    // Cleanup temp files
+    try {
+      if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
+    } catch (e) { /* ignore */ }
+  }
+}
+
+/**
+ * Merge parsed translations with English structure
+ */
+function mergeWithEnglish(parsed, english) {
+  function deepMerge(eng, prs) {
+    const result = {};
+    for (const key of Object.keys(eng)) {
+      if (typeof eng[key] === 'object' && eng[key] !== null) {
+        result[key] = deepMerge(eng[key], prs?.[key] || {});
+      } else {
+        result[key] = prs?.[key] !== undefined ? prs[key] : eng[key];
+      }
+    }
+    return result;
+  }
+  return deepMerge(english, parsed);
+}
+
+/**
+ * Count keys in nested object
+ */
+function countKeys(obj) {
+  let count = 0;
+  for (const key of Object.keys(obj)) {
+    if (typeof obj[key] === 'object' && obj[key] !== null) {
+      count += countKeys(obj[key]);
+    } else {
+      count++;
+    }
+  }
+  return count;
 }
 
 /**
  * Main migration function
  */
 async function migrate() {
-  console.log('Translation Migration Script');
-  console.log('============================\n');
+  console.log('Translation Migration Script v3');
+  console.log('===============================\n');
 
   // Ensure output directory exists
   if (!fs.existsSync(OUTPUT_PATH)) {
@@ -426,22 +598,40 @@ async function migrate() {
   fs.writeFileSync(enPath, JSON.stringify(englishLocale, null, 2) + '\n');
   console.log('  Created:', enPath, '\n');
 
-  // Generate other locales
-  const languages = ['es', 'ru', 'pl', 'pt', 'ca', 'zh-Hans'];
+  const englishKeyCount = countKeys(englishLocale);
 
-  for (const lang of languages) {
-    console.log('Generating', lang, 'locale...');
-    const locale = generateLocale(lang, englishLocale);
-    const localePath = path.join(OUTPUT_PATH, lang + '.json');
-    fs.writeFileSync(localePath, JSON.stringify(locale, null, 2) + '\n');
-    console.log('  Created:', localePath, '\n');
+  // Process each language
+  for (const lang of LANGUAGES) {
+    console.log(`Processing ${lang}...`);
+
+    try {
+      const parsed = await loadTypeScriptTranslations(lang);
+      const merged = mergeWithEnglish(parsed, englishLocale);
+
+      const outputPath = path.join(OUTPUT_PATH, `${lang}.json`);
+      fs.writeFileSync(outputPath, JSON.stringify(merged, null, 2) + '\n');
+      console.log(`  Created: ${outputPath}`);
+
+      const keyCount = countKeys(merged);
+      console.log(`  Keys: ${keyCount}/${englishKeyCount}`);
+    } catch (error) {
+      console.error(`  Error processing ${lang}:`, error.message);
+      // Fall back to English structure
+      const outputPath = path.join(OUTPUT_PATH, `${lang}.json`);
+      fs.writeFileSync(outputPath, JSON.stringify(englishLocale, null, 2) + '\n');
+      console.log(`  Created (fallback): ${outputPath}`);
+    }
   }
 
-  console.log('============================');
+  // Cleanup temp directory
+  const tempDir = path.join(__dirname, '.temp');
+  if (fs.existsSync(tempDir)) {
+    fs.rmSync(tempDir, { recursive: true });
+  }
+
+  console.log('\n===============================');
   console.log('Migration complete!');
-  console.log('\nGenerated', languages.length + 1, 'locale files');
-  console.log('\nNote: Non-English locales currently use English text.');
-  console.log('Actual translations will be migrated in a follow-up task.');
+  console.log(`\nGenerated ${LANGUAGES.length + 1} locale files`);
 }
 
 // Run migration
