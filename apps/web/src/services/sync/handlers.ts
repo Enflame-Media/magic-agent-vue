@@ -181,7 +181,7 @@ function handleUpdate(data: unknown): void {
 
         default: {
             // TypeScript exhaustiveness check
-            const _exhaustiveCheck: never = update;
+            const _exhaustiveCheck = update as never;
             console.warn('[sync] Unknown update type:', (_exhaustiveCheck as { t: string }).t);
         }
     }
@@ -257,7 +257,7 @@ function handleEphemeral(data: unknown): void {
 
         default: {
             // TypeScript exhaustiveness check
-            const _exhaustiveCheck: never = event;
+            const _exhaustiveCheck = event as never;
             console.warn('[sync] Unknown ephemeral type:', (_exhaustiveCheck as { type: string }).type);
         }
     }
