@@ -81,7 +81,11 @@ function isMachineOnline(machine: Machine): boolean {
 
     // Machine is online if: explicitly marked online AND recently active
     // OR: we have no online status yet but it was recently active (initial sync)
-    return machine.online === true ? isRecentlyActive : false;
+    if (machine.online === true) {
+        return isRecentlyActive;
+    }
+
+    return isRecentlyActive;
 }
 
 /**

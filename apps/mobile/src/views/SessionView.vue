@@ -150,11 +150,11 @@ watch(messages, () => {
 </script>
 
 <template>
-  <Page actionBarHidden="false">
+  <Page action-bar-hidden="false">
     <ActionBar :title="sessionTitle">
       <NavigationButton text="Back" android.systemIcon="ic_menu_back" @tap="navigateBack" />
       <ActionItem ios.position="right" android.position="actionBar">
-        <StackLayout orientation="horizontal" verticalAlignment="center">
+        <StackLayout orientation="horizontal" vertical-alignment="center">
           <Label text="●" :style="{ color: statusColor, fontSize: 10, marginRight: 4 }" />
           <Label v-if="session" :text="session.status" class="status-text" />
         </StackLayout>
@@ -164,8 +164,8 @@ watch(messages, () => {
     <GridLayout rows="*, auto">
       <!-- Messages -->
       <ScrollView
-        row="0"
         ref="scrollViewRef"
+        row="0"
         class="messages-container"
       >
         <StackLayout class="messages-list">
@@ -176,7 +176,7 @@ watch(messages, () => {
           >
             <Label
               :text="message.content"
-              textWrap="true"
+              text-wrap="true"
               class="message-text"
             />
             <Label
@@ -196,20 +196,20 @@ watch(messages, () => {
       <!-- Input Area -->
       <GridLayout row="1" columns="*, auto" class="input-container">
         <TextField
-          col="0"
           v-model="inputText"
+          col="0"
           hint="Type a message..."
-          returnKeyType="send"
-          @returnPress="sendMessage"
+          return-key-type="send"
           class="input-field"
-          :isEnabled="!isLoading"
+          :is-enabled="!isLoading"
+          @return-press="sendMessage"
         />
         <Button
           col="1"
           text="Send"
-          @tap="sendMessage"
           class="send-button"
-          :isEnabled="!isLoading && inputText.trim().length > 0"
+          :is-enabled="!isLoading && inputText.trim().length > 0"
+          @tap="sendMessage"
         />
       </GridLayout>
     </GridLayout>

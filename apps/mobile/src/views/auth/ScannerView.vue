@@ -139,7 +139,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <Page actionBarHidden="false">
+  <Page action-bar-hidden="false">
     <ActionBar title="Connect">
       <NavigationButton text="Back" android.systemIcon="ic_menu_back" @tap="navigateBack" />
     </ActionBar>
@@ -151,18 +151,18 @@ onMounted(() => {
         <Label
           text="Open Claude Code CLI and display the QR code, then scan it with your camera."
           class="subtitle"
-          textWrap="true"
+          text-wrap="true"
         />
       </StackLayout>
 
       <!-- Main content area -->
-      <StackLayout row="1" class="content" verticalAlignment="center">
+      <StackLayout row="1" class="content" vertical-alignment="center">
         <!-- Scan button -->
         <Button
           text="Open Camera"
-          @tap="startScanning"
           class="btn-primary btn-large"
-          :isEnabled="!isScanning && !isConnecting"
+          :is-enabled="!isScanning && !isConnecting"
+          @tap="startScanning"
         />
 
         <!-- Loading indicator -->
@@ -173,8 +173,8 @@ onMounted(() => {
 
         <!-- Error display -->
         <StackLayout v-if="scanError || error" class="error-container">
-          <Label :text="scanError || error" class="error-text" textWrap="true" />
-          <Button text="Try Again" @tap="clearError(); scanError = null" class="btn-secondary" />
+          <Label :text="scanError || error" class="error-text" text-wrap="true" />
+          <Button text="Try Again" class="btn-secondary" @tap="clearError(); scanError = null" />
         </StackLayout>
       </StackLayout>
 
@@ -183,9 +183,9 @@ onMounted(() => {
         <Label text="Having trouble scanning?" class="footer-label" />
         <Button
           text="Enter Code Manually"
-          @tap="enterManually"
           class="btn-link"
-          :isEnabled="!isConnecting"
+          :is-enabled="!isConnecting"
+          @tap="enterManually"
         />
       </StackLayout>
     </GridLayout>

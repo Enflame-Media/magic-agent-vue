@@ -27,6 +27,7 @@ import { storeToRefs } from 'pinia';
 import { useAuthStore } from '@/stores/auth';
 import { useSyncStore } from '@/stores/sync';
 import { wsService, setupSyncHandlers, areHandlersSetup } from '@/services/sync';
+import { bootstrapSyncData } from '@/services/sync/bootstrap';
 import { getApiBaseUrl } from '@/services/apiBase';
 
 /** API server URL from environment */
@@ -50,6 +51,7 @@ export function useSync() {
     // Extract reactive refs
     const { token, isAuthenticated } = storeToRefs(authStore);
     const { status, isConnected, isConnecting, hasError, statusMessage } = storeToRefs(syncStore);
+    let hasBootstrapped = false;
 
     /**
      * Connect to the WebSocket server.
@@ -115,6 +117,18 @@ export function useSync() {
         } else if (!newIsAuth && oldIsAuth) {
             // Logged out - disconnect
             disconnect();
+        }
+    });
+
+    watch(isConnected, (connected) => {
+        if (!connected) {
+            hasBootstrapped = false;
+            return;
+        }
+
+        if (connected && token.value && !hasBootstrapped) {
+            hasBootstrapped = true;
+            void bootstrapSyncData(token.value);
         }
     });
 

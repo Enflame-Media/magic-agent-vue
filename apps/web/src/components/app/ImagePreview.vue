@@ -156,7 +156,7 @@ onUnmounted(() => {
       <div class="flex items-center gap-1">
         <span class="text-xs text-muted-foreground mr-2">{{ zoomPercent }}%</span>
 
-        <Button variant="ghost" size="sm" class="h-7 w-7 p-0" @click="zoomOut" title="Zoom out">
+        <Button variant="ghost" size="sm" class="h-7 w-7 p-0" title="Zoom out" @click="zoomOut">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             class="h-4 w-4"
@@ -173,7 +173,7 @@ onUnmounted(() => {
           </svg>
         </Button>
 
-        <Button variant="ghost" size="sm" class="h-7 w-7 p-0" @click="zoomIn" title="Zoom in">
+        <Button variant="ghost" size="sm" class="h-7 w-7 p-0" title="Zoom in" @click="zoomIn">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             class="h-4 w-4"
@@ -190,7 +190,7 @@ onUnmounted(() => {
           </svg>
         </Button>
 
-        <Button variant="ghost" size="sm" class="h-7 w-7 p-0" @click="fitToContainer" title="Fit to window">
+        <Button variant="ghost" size="sm" class="h-7 w-7 p-0" title="Fit to window" @click="fitToContainer">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             class="h-4 w-4"
@@ -207,7 +207,7 @@ onUnmounted(() => {
           </svg>
         </Button>
 
-        <Button variant="ghost" size="sm" class="h-7 w-7 p-0" @click="resetZoom" title="Reset zoom">
+        <Button variant="ghost" size="sm" class="h-7 w-7 p-0" title="Reset zoom" @click="resetZoom">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             class="h-4 w-4"

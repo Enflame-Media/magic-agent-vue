@@ -49,13 +49,14 @@ export const useAuthStore = defineStore('auth', () => {
 
     /** Account profile information */
     const account = ref<AccountInfo | null>(null);
+    const isHydrated = ref(false);
 
     // ─────────────────────────────────────────────────────────────────────────
     // Getters (Computed)
     // ─────────────────────────────────────────────────────────────────────────
 
     /** Whether the user is authenticated (has a valid token) */
-    const isAuthenticated = computed(() => !!token.value && !!accountId.value);
+    const isAuthenticated = computed(() => !!token.value);
 
     /** Whether we can approve CLI connections (have both token and secret) */
     const canApproveConnections = computed(() => !!token.value && !!secret.value);
@@ -89,6 +90,13 @@ export const useAuthStore = defineStore('auth', () => {
     function setCredentials(newToken: string, newAccountId: string) {
         token.value = newToken;
         accountId.value = newAccountId;
+    }
+
+    /**
+     * Set or clear the shared secret for CLI approvals
+     */
+    function setSecret(newSecret: string | null) {
+        secret.value = newSecret;
     }
 
     /**
@@ -139,8 +147,10 @@ export const useAuthStore = defineStore('auth', () => {
             token.value = credentials.token;
             secret.value = credentials.secret;
             // Note: accountId is set separately after fetching account info
+            isHydrated.value = true;
             return true;
         }
+        isHydrated.value = true;
         return false;
     }
 
@@ -157,6 +167,7 @@ export const useAuthStore = defineStore('auth', () => {
         secret,
         accountId,
         account,
+        isHydrated,
         // Getters
         isAuthenticated,
         canApproveConnections,
@@ -165,6 +176,7 @@ export const useAuthStore = defineStore('auth', () => {
         // Actions
         initialize,
         setCredentials,
+        setSecret,
         setAccount,
         updateAccount,
         logout,

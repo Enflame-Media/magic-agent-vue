@@ -160,7 +160,7 @@ async function handleQRScan(data: string): Promise<void> {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+ 
 function handleQRError(_err: Error): void {
   // QR scanner handles its own error display
   // No additional handling needed here

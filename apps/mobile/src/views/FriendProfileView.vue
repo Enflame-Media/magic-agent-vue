@@ -114,7 +114,7 @@ watch(
 </script>
 
 <template>
-  <Page actionBarHidden="false">
+  <Page action-bar-hidden="false">
     <ActionBar :title="displayName">
       <NavigationButton text="Back" android.systemIcon="ic_menu_back" @tap="navigateBack" />
     </ActionBar>
@@ -123,7 +123,7 @@ watch(
       <ActivityIndicator v-if="isLoading" :busy="true" class="loading" />
 
       <StackLayout v-else-if="errorMessage" class="error-state">
-        <Label :text="errorMessage" class="error-title" textWrap="true" />
+        <Label :text="errorMessage" class="error-title" text-wrap="true" />
         <Button text="Back to Friends" class="btn-back" @tap="navigateBack" />
       </StackLayout>
 
@@ -157,7 +157,7 @@ watch(
           v-if="profile.bio"
           :text="profile.bio"
           class="profile-bio"
-          textWrap="true"
+          text-wrap="true"
         />
       </StackLayout>
     </GridLayout>

@@ -87,7 +87,7 @@ const isProcessing = computed(() => isPurchasing.value || isRestoring.value);
 
 const dialogOpen = computed({
   get: () => props.open,
-  set: (value) => emit('update:open', value),
+  set: (value) => { emit('update:open', value); },
 });
 
 /** Packages to display, prioritizing annual then monthly */

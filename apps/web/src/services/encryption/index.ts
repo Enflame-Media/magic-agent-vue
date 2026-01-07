@@ -9,3 +9,4 @@
 
 export { EncryptionCache, encryptionCache } from './EncryptionCache';
 export { keyStorage, type StoredKeyPair, type KeyPair } from './KeyStorage';
+export { EncryptionManager } from './encryptionManager';

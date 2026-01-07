@@ -35,7 +35,7 @@ let controls: { stop: () => void } | null = null;
  */
 async function startScanning(): Promise<void> {
   if (!videoRef.value) {
-    // eslint-disable-next-line no-console
+     
     console.error('[QRScanner] Video element not ready');
     return;
   }
@@ -64,7 +64,7 @@ async function startScanning(): Promise<void> {
     isScanning.value = true;
     hasPermission.value = true;
   } catch (error) {
-    // eslint-disable-next-line no-console
+     
     console.error('[QRScanner] Failed to start:', error);
 
     if (error instanceof Error) {

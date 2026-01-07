@@ -49,7 +49,7 @@ function onBlock() {
     columns="48, *, auto"
     class="friend-card"
     @tap="onTap"
-    @longPress="isAcceptedFriend ? onBlock() : undefined"
+    @long-press="isAcceptedFriend ? onBlock() : undefined"
   >
     <!-- Avatar -->
     <Image
@@ -82,13 +82,13 @@ function onBlock() {
       <Button
         text="Accept"
         class="btn-accept"
-        :isEnabled="!isProcessing"
+        :is-enabled="!isProcessing"
         @tap="onAccept"
       />
       <Button
         text="Decline"
         class="btn-reject"
-        :isEnabled="!isProcessing"
+        :is-enabled="!isProcessing"
         @tap="onReject"
       />
     </StackLayout>

@@ -202,7 +202,7 @@ onMounted(() => {
       <!-- Error state -->
       <StackLayout v-else-if="error && listItems.length === 0" class="error-state">
         <Label text="Failed to load friends" class="error-title" />
-        <Label :text="error" class="error-message" textWrap="true" />
+        <Label :text="error" class="error-message" text-wrap="true" />
         <Button text="Try Again" class="btn-retry" @tap="loadFriends" />
       </StackLayout>
 
@@ -210,9 +210,9 @@ onMounted(() => {
       <ListView
         v-else
         :items="listItems"
-        separatorColor="transparent"
-        @itemTap="() => {}"
-        @pullToRefreshInitiated="onPullToRefresh"
+        separator-color="transparent"
+        @item-tap="() => {}"
+        @pull-to-refresh-initiated="onPullToRefresh"
       >
         <template #default="{ item }">
           <!-- Section header -->
@@ -226,7 +226,7 @@ onMounted(() => {
           <FriendCard
             v-else-if="item.user"
             :user="item.user"
-            :isProcessing="processingId === item.user.id"
+            :is-processing="processingId === item.user.id"
             @tap="handleFriendTap(item.user.id)"
             @accept="handleAccept(item.user.id)"
             @reject="handleReject(item.user.id)"
@@ -244,7 +244,7 @@ onMounted(() => {
         <Label
           text="Scan a QR code or share your invite link"
           class="empty-message"
-          textWrap="true"
+          text-wrap="true"
         />
         <StackLayout orientation="horizontal" class="empty-buttons">
           <Button text="Scan QR Code" class="btn-scan" @tap="openQRScanner" />

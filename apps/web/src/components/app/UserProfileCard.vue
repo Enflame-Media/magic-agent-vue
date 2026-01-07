@@ -93,19 +93,19 @@ const actionConfig = computed(() => {
       return {
         label: 'Add Friend',
         variant: 'default' as const,
-        action: () => emit('addFriend', props.user.id),
+        action: () => { emit('addFriend', props.user.id); },
       };
     case 'requested':
       return {
         label: 'Pending',
         variant: 'secondary' as const,
-        action: () => emit('cancelRequest', props.user.id),
+        action: () => { emit('cancelRequest', props.user.id); },
       };
     case 'friend':
       return {
         label: 'Friends',
         variant: 'outline' as const,
-        action: () => emit('removeFriend', props.user.id),
+        action: () => { emit('removeFriend', props.user.id); },
       };
     default:
       return null;

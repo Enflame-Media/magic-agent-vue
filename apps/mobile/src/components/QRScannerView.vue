@@ -144,7 +144,7 @@ function close() {
 </script>
 
 <template>
-  <Page actionBarHidden="true">
+  <Page action-bar-hidden="true">
     <GridLayout rows="auto, *, auto" class="scanner-container">
       <!-- Header -->
       <GridLayout row="0" columns="auto, *, auto" class="header">
@@ -158,7 +158,7 @@ function close() {
         <Label
           text="Position the QR code within the frame to scan"
           class="instructions"
-          textWrap="true"
+          text-wrap="true"
         />
 
         <!-- Scan button -->
@@ -180,7 +180,7 @@ function close() {
           v-if="errorMessage"
           :text="errorMessage"
           class="error-message"
-          textWrap="true"
+          text-wrap="true"
         />
       </StackLayout>
 
@@ -189,7 +189,7 @@ function close() {
         <Label
           text="Scan a friend's QR code to send them a friend request"
           class="footer-text"
-          textWrap="true"
+          text-wrap="true"
         />
       </StackLayout>
     </GridLayout>

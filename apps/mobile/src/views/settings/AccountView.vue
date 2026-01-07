@@ -69,7 +69,7 @@ function formatDate(date: Date): string {
 </script>
 
 <template>
-  <Page actionBarHidden="false">
+  <Page action-bar-hidden="false">
     <ActionBar title="Account">
       <NavigationButton text="Back" android.systemIcon="ic_menu_back" @tap="navigateBack" />
     </ActionBar>
@@ -93,16 +93,16 @@ function formatDate(date: Date): string {
             <Button
               col="1"
               text="Disconnect"
-              @tap="confirmDisconnect(machine.id)"
               class="btn-disconnect"
+              @tap="confirmDisconnect(machine.id)"
             />
           </GridLayout>
 
-          <StackLayout class="setting-item" v-if="connectedMachines.length > 1">
+          <StackLayout v-if="connectedMachines.length > 1" class="setting-item">
             <Button
               text="Disconnect All Machines"
-              @tap="confirmDisconnectAll"
               class="btn-danger-outline"
+              @tap="confirmDisconnectAll"
             />
           </StackLayout>
         </StackLayout>
@@ -112,7 +112,7 @@ function formatDate(date: Date): string {
           <Label
             text="Scan a QR code from your CLI to connect a machine."
             class="empty-subtitle"
-            textWrap="true"
+            text-wrap="true"
           />
         </StackLayout>
 

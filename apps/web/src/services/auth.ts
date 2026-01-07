@@ -12,6 +12,7 @@
  */
 
 import { encodeBase64, decodeBase64 } from './base64';
+import { normalizeSecretKey } from './secretKey';
 import {
   generateBoxKeyPair,
   decryptBox,
@@ -164,7 +165,7 @@ export async function waitForAuthentication(
         const decrypted = decryptBox(encryptedResponse, keypair.secretKey);
 
         if (!decrypted) {
-          // eslint-disable-next-line no-console
+           
           console.error('[Auth] Failed to decrypt server response');
           return null;
         }
@@ -184,7 +185,7 @@ export async function waitForAuthentication(
         return credentials;
       }
     } catch {
-      // eslint-disable-next-line no-console
+       
       console.error('[Auth] Failed to check auth status');
       return null;
     }
@@ -227,10 +228,37 @@ export async function refreshToken(secret: string): Promise<string | null> {
     const data = (await response.json()) as { token: string };
     return data.token;
   } catch {
-    // eslint-disable-next-line no-console
+     
     console.error('[Auth] Token refresh failed');
     return null;
   }
+}
+
+/**
+ * Authenticate using a secret key (base64, base64url, or formatted).
+ */
+export async function authenticateWithSecretKey(
+  secretKey: string
+): Promise<StoredCredentials> {
+  const normalizedSecret = normalizeSecretKey(secretKey);
+  const token = await refreshToken(normalizedSecret);
+
+  if (!token) {
+    throw new Error('Authentication failed');
+  }
+
+  const credentials: StoredCredentials = {
+    token,
+    secret: normalizedSecret,
+    expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
+  };
+
+  const stored = await secureStorage.setCredentials(credentials);
+  if (!stored) {
+    throw new Error('Failed to store authentication tokens');
+  }
+
+  return credentials;
 }
 
 /**

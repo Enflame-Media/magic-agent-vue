@@ -70,7 +70,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <Page actionBarHidden="false">
+  <Page action-bar-hidden="false">
     <ActionBar title="Happy">
       <ActionItem
         text="Scan"
@@ -101,8 +101,8 @@ onMounted(() => {
           <Button
             col="1"
             text="+ Connect"
-            @tap="navigateToScanner"
             class="btn-connect"
+            @tap="navigateToScanner"
           />
         </GridLayout>
       </StackLayout>
@@ -113,9 +113,9 @@ onMounted(() => {
         row="1"
         :items="sessions"
         class="session-list"
-        @itemTap="navigateToSession($event.item)"
-        pullToRefreshEnabled="true"
-        @pullToRefreshInitiated="onRefresh"
+        pull-to-refresh-enabled="true"
+        @item-tap="navigateToSession($event.item)"
+        @pull-to-refresh-initiated="onRefresh"
       >
         <template #default="{ item }">
           <SessionCard :session="item" @tap="navigateToSession" />
@@ -123,18 +123,18 @@ onMounted(() => {
       </ListView>
 
       <!-- Empty State -->
-      <StackLayout v-else row="1" class="empty-state" verticalAlignment="center">
+      <StackLayout v-else row="1" class="empty-state" vertical-alignment="center">
         <Label text="📱" class="empty-icon" />
         <Label text="No sessions yet" class="empty-title" />
         <Label
           text="Scan the QR code from your Claude Code CLI to connect your first session."
           class="empty-description"
-          textWrap="true"
+          text-wrap="true"
         />
         <Button
           text="Scan QR Code"
-          @tap="navigateToScanner"
           class="btn-primary"
+          @tap="navigateToScanner"
         />
       </StackLayout>
     </GridLayout>

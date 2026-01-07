@@ -47,6 +47,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/new',
+      name: 'new-session',
+      component: () => import('@/views/NewSessionView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/session/:id',
       name: 'session',
       component: () => import('@/views/SessionView.vue'),
@@ -55,7 +61,7 @@ const router = createRouter({
     {
       path: '/session/:id/info',
       name: 'session-info',
-      component: () => import('@/views/SessionView.vue'), // Same view, different tab
+      component: () => import('@/views/SessionInfoView.vue'),
       meta: { requiresAuth: true },
     },
     {
@@ -192,12 +198,16 @@ const router = createRouter({
 // ─────────────────────────────────────────────────────────────────────────
 
 router.beforeEach(
-  (
+  async (
     to: RouteLocationNormalized,
     _from: RouteLocationNormalized,
     next: NavigationGuardNext
   ) => {
     const authStore = useAuthStore();
+
+    if (!authStore.isHydrated) {
+      await authStore.initialize();
+    }
 
     // Routes that require authentication
     if (to.meta.requiresAuth && !authStore.isAuthenticated) {

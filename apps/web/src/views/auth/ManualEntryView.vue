@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Clipboard, CheckCircle2, AlertCircle, Loader2 } from 'lucide-vue-next';
-import { parseConnectionCode, approveCliConnection } from '@/services/auth';
+import { parseConnectionCode, approveCliConnection, authenticateWithSecretKey } from '@/services/auth';
 import { useAuthStore } from '@/stores/auth';
 import { toast } from 'vue-sonner';
 
@@ -20,9 +20,11 @@ const router = useRouter();
 const authStore = useAuthStore();
 
 type ConnectionState = 'input' | 'connecting' | 'success' | 'error';
+type ManualAuthMode = 'cli' | 'secret' | null;
 
 const state = ref<ConnectionState>('input');
-const connectionCode = ref('');
+const manualInput = ref('');
+const lastMode = ref<ManualAuthMode>(null);
 const errorMessage = ref<string | null>(null);
 
 /**
@@ -31,7 +33,7 @@ const errorMessage = ref<string | null>(null);
 async function pasteFromClipboard() {
   try {
     const text = await navigator.clipboard.readText();
-    connectionCode.value = text.trim();
+    manualInput.value = text.trim();
     toast.success('Pasted from clipboard');
   } catch {
     toast.error('Failed to paste', {
@@ -44,33 +46,52 @@ async function pasteFromClipboard() {
  * Handle form submission
  */
 async function handleSubmit() {
-  if (!connectionCode.value.trim()) {
-    toast.error('Please enter a connection code');
+  const rawInput = manualInput.value.trim();
+  if (!rawInput) {
+    toast.error('Please enter a connection code or secret key');
     return;
   }
 
   state.value = 'connecting';
+  lastMode.value = null;
   errorMessage.value = null;
 
   try {
-    // Parse the connection code to get CLI's public key
-    const connectionInfo = parseConnectionCode(connectionCode.value);
+    let connectionInfo: ReturnType<typeof parseConnectionCode> | null = null;
 
-    // Check if we have credentials to approve the connection
-    if (!authStore.canApproveConnections || !authStore.token || !authStore.secret) {
-      throw new Error('Not authenticated. Please log in first.');
+    try {
+      connectionInfo = parseConnectionCode(rawInput);
+    } catch {
+      connectionInfo = null;
     }
 
-    // Approve the CLI connection
-    await approveCliConnection(
-      authStore.token,
-      connectionInfo.publicKey,
-      authStore.secret
-    );
+    if (connectionInfo) {
+      lastMode.value = 'cli';
+      // Check if we have credentials to approve the connection
+      if (!authStore.canApproveConnections || !authStore.token || !authStore.secret) {
+        throw new Error('Not authenticated. Please log in first.');
+      }
 
-    toast.success('CLI Connected!', {
-      description: 'The terminal session is now linked to your account',
-    });
+      // Approve the CLI connection
+      await approveCliConnection(
+        authStore.token,
+        connectionInfo.publicKey,
+        authStore.secret
+      );
+
+      toast.success('CLI Connected!', {
+        description: 'The terminal session is now linked to your account',
+      });
+    } else {
+      lastMode.value = 'secret';
+      const credentials = await authenticateWithSecretKey(rawInput);
+      authStore.setCredentials(credentials.token, 'temp-account-id');
+      authStore.setSecret(credentials.secret);
+
+      toast.success('Authenticated!', {
+        description: 'You are now logged in on this browser',
+      });
+    }
 
     state.value = 'success';
 
@@ -84,7 +105,7 @@ async function handleSubmit() {
     errorMessage.value =
       error instanceof Error ? error.message : 'Invalid connection code';
 
-    toast.error('Invalid Code', {
+    toast.error('Authentication Failed', {
       description: errorMessage.value,
     });
   }
@@ -102,8 +123,9 @@ function goBack() {
  */
 function retry() {
   state.value = 'input';
+  lastMode.value = null;
   errorMessage.value = null;
-  connectionCode.value = '';
+  manualInput.value = '';
 }
 </script>
 
@@ -119,7 +141,7 @@ function retry() {
         >
           <ArrowLeft class="h-5 w-5" />
         </Button>
-        <h1 class="title">Enter Code</h1>
+        <h1 class="title">Manual Entry</h1>
         <div class="spacer" />
       </div>
 
@@ -128,7 +150,7 @@ function retry() {
         <CardHeader>
           <CardTitle>Manual Connection</CardTitle>
           <CardDescription>
-            Paste the connection URL from your terminal
+            Paste the connection URL or your secret key
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -140,9 +162,9 @@ function retry() {
             >
               <div class="input-group">
                 <Input
-                  v-model="connectionCode"
+                  v-model="manualInput"
                   type="text"
-                  placeholder="happy://terminal?... or paste URL"
+                  placeholder="happy://terminal?... or paste secret key"
                   class="input"
                 />
                 <Button
@@ -157,7 +179,7 @@ function retry() {
               <Button
                 type="submit"
                 class="w-full"
-                :disabled="!connectionCode.trim()"
+                :disabled="!manualInput.trim()"
               >
                 Connect
               </Button>
@@ -168,9 +190,13 @@ function retry() {
           <template v-else-if="state === 'connecting'">
             <div class="state-container">
               <Loader2 class="state-icon spinning" />
-              <p class="state-title">Connecting...</p>
+              <p class="state-title">
+                {{ lastMode === 'secret' ? 'Authenticating...' : 'Connecting...' }}
+              </p>
               <p class="state-description">
-                Establishing connection with the CLI
+                {{ lastMode === 'secret'
+                  ? 'Signing in with your secret key'
+                  : 'Establishing connection with the CLI' }}
               </p>
             </div>
           </template>
@@ -179,9 +205,13 @@ function retry() {
           <template v-else-if="state === 'success'">
             <div class="state-container success">
               <CheckCircle2 class="state-icon" />
-              <p class="state-title">Connected!</p>
+              <p class="state-title">
+                {{ lastMode === 'secret' ? 'Authenticated!' : 'Connected!' }}
+              </p>
               <p class="state-description">
-                You can now see this session in your terminal
+                {{ lastMode === 'secret'
+                  ? 'Your browser session is now authenticated'
+                  : 'You can now see this session in your terminal' }}
               </p>
             </div>
           </template>
@@ -190,7 +220,7 @@ function retry() {
           <template v-else-if="state === 'error'">
             <div class="state-container error">
               <AlertCircle class="state-icon" />
-              <p class="state-title">Invalid Code</p>
+              <p class="state-title">Authentication Failed</p>
               <p class="state-description">{{ errorMessage }}</p>
               <Button @click="retry">
                 Try Again
@@ -210,6 +240,7 @@ function retry() {
           <li>Run <code>happy</code> in your terminal</li>
           <li>Choose "Web Authentication"</li>
           <li>Copy the URL shown below the QR code</li>
+          <li>Or paste your secret key to authenticate this browser</li>
         </ol>
       </div>
     </div>

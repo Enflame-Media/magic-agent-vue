@@ -1,124 +1,179 @@
 <script setup lang="ts">
 /**
- * Home View - Sessions List
+ * Home View - Dashboard
  *
- * Displays all synced sessions from the user's connected machines.
- * Main landing page for authenticated users.
- *
- * Features:
- * - Real-time session list with sync status
- * - Search/filter sessions (future)
- * - Navigate to session detail
- * - Empty state for new users
+ * Provides a shadcn-vue inspired dashboard layout with Happy session metrics,
+ * connection status, and a table of recent sessions.
  */
 
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { useSessionsStore } from '@/stores/sessions';
+import { useArtifactsStore } from '@/stores/artifacts';
+import { useMachinesStore } from '@/stores/machines';
+import { useSessionsStore, type Session } from '@/stores/sessions';
 import { useSyncStore } from '@/stores/sync';
-import { SessionCard, EmptyState, ConnectionStatus } from '@/components/app';
+import SectionCards from '@/components/SectionCards.vue';
+import ChartAreaInteractive from '@/components/ChartAreaInteractive.vue';
+import DataTable from '@/components/DataTable.vue';
+import { ConnectionStatus } from '@/components/app';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
+type SectionCard = {
+  title: string;
+  value: string;
+  badgeLabel: string;
+  badgeDirection?: 'up' | 'down';
+  summary: string;
+  detail: string;
+};
+
+type SessionRow = {
+  id: string;
+  name: string;
+  status: 'Active' | 'Archived';
+  path: string;
+  lastActive: string;
+};
 
 const router = useRouter();
 const sessionsStore = useSessionsStore();
+const machinesStore = useMachinesStore();
+const artifactsStore = useArtifactsStore();
 const syncStore = useSyncStore();
 
-// Computed session lists
-const activeSessions = computed(() => sessionsStore.activeSessions);
-const inactiveSessions = computed(() => sessionsStore.inactiveSessions);
-const hasAnySessions = computed(() => sessionsStore.count > 0);
+const cards = computed<SectionCard[]>(() => {
+  const totalSessions = sessionsStore.count;
+  const activeSessions = sessionsStore.activeSessions.length;
+  const archivedSessions = sessionsStore.inactiveSessions.length;
+  const onlineMachines = machinesStore.onlineMachines.length;
+  const artifacts = artifactsStore.count;
 
-// Connection status
-const isConnected = computed(() => syncStore.isConnected);
+  return [
+    {
+      title: 'Total Sessions',
+      value: String(totalSessions),
+      badgeLabel: `${activeSessions} active`,
+      badgeDirection: 'up',
+      summary: 'Sessions synced across devices',
+      detail: `${archivedSessions} archived session(s)`,
+    },
+    {
+      title: 'Online Machines',
+      value: String(onlineMachines),
+      badgeLabel: syncStore.isConnected ? 'Connected' : 'Offline',
+      badgeDirection: syncStore.isConnected ? 'up' : 'down',
+      summary: 'CLI daemons reporting in',
+      detail: `${machinesStore.count} total machine(s) connected`,
+    },
+    {
+      title: 'Artifacts',
+      value: String(artifacts),
+      badgeLabel: artifacts > 0 ? 'Synced' : 'Waiting',
+      badgeDirection: artifacts > 0 ? 'up' : 'down',
+      summary: 'Files captured from sessions',
+      detail: 'Exported outputs stay encrypted',
+    },
+    {
+      title: 'Connection',
+      value: syncStore.statusMessage,
+      badgeLabel: syncStore.isConnected ? 'Live' : 'Retrying',
+      badgeDirection: syncStore.isConnected ? 'up' : 'down',
+      summary: 'WebSocket relay health',
+      detail: syncStore.isConnecting ? 'Reconnecting to relay' : 'Healthy relay state',
+    },
+  ];
+});
 
-function navigateToSettings() {
+function sessionName(session: Session): string {
+  try {
+    const meta = JSON.parse(session.metadata);
+    return meta.name || meta.title || `Session ${session.id.slice(0, 8)}`;
+  } catch {
+    return `Session ${session.id.slice(0, 8)}`;
+  }
+}
+
+function sessionPath(session: Session): string | null {
+  try {
+    const meta = JSON.parse(session.metadata);
+    return meta.path || meta.projectPath || null;
+  } catch {
+    return null;
+  }
+}
+
+function lastActivity(session: Session): string {
+  const date = new Date(session.updatedAt);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
+}
+
+const tableData = computed<SessionRow[]>(() =>
+  sessionsStore.sessionsList.map((session) => ({
+    id: session.id,
+    name: sessionName(session),
+    status: session.active ? 'Active' : 'Archived',
+    path: sessionPath(session) ?? '',
+    lastActive: lastActivity(session),
+  }))
+);
+
+function startNewSession() {
+  router.push('/new');
+}
+
+function openSettings() {
   router.push('/settings');
 }
 </script>
 
 <template>
-  <div class="container mx-auto px-4 py-6 max-w-3xl">
-    <!-- Header -->
-    <header class="flex items-center justify-between mb-6">
-      <div>
-        <h1 class="text-2xl font-semibold">Sessions</h1>
-        <p class="text-sm text-muted-foreground mt-1">
-          Your Claude Code sessions across all machines
-        </p>
+  <div class="flex flex-col gap-6 py-6">
+    <SectionCards :cards="cards" />
+
+    <div class="grid gap-4 px-4 lg:px-6 lg:grid-cols-3">
+      <div class="lg:col-span-2">
+        <ChartAreaInteractive />
       </div>
-      <div class="flex items-center gap-4">
-        <ConnectionStatus />
-        <Button variant="ghost" size="icon" @click="navigateToSettings">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="h-5 w-5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-            />
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-            />
-          </svg>
-        </Button>
-      </div>
-    </header>
+      <Card class="h-full">
+        <CardHeader>
+          <CardTitle>Sync Status</CardTitle>
+          <CardDescription>Keep an eye on your relay health</CardDescription>
+        </CardHeader>
+        <CardContent class="flex flex-col gap-4">
+          <ConnectionStatus />
+          <div class="flex flex-col gap-3 text-sm text-muted-foreground">
+            <div class="flex items-center justify-between">
+              <span>Active sessions</span>
+              <span class="text-foreground font-medium tabular-nums">{{ sessionsStore.activeSessions.length }}</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span>Archived sessions</span>
+              <span class="text-foreground font-medium tabular-nums">{{ sessionsStore.inactiveSessions.length }}</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span>Artifacts synced</span>
+              <span class="text-foreground font-medium tabular-nums">{{ artifactsStore.count }}</span>
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <Button size="sm" @click="startNewSession">New Session</Button>
+            <Button variant="outline" size="sm" @click="openSettings">Settings</Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
 
-    <!-- Empty State -->
-    <template v-if="!hasAnySessions">
-      <EmptyState
-        title="No Sessions Yet"
-        description="Connect a terminal running Claude Code with the Happy CLI to see your sessions here."
-        action-label="Go to Settings"
-        @action="navigateToSettings"
-      />
-    </template>
-
-    <!-- Sessions List -->
-    <template v-else>
-      <!-- Active Sessions -->
-      <section v-if="activeSessions.length > 0" class="mb-8">
-        <h2 class="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-          Active Sessions
-        </h2>
-        <div class="space-y-3">
-          <SessionCard
-            v-for="session in activeSessions"
-            :key="session.id"
-            :session="session"
-          />
-        </div>
-      </section>
-
-      <!-- Inactive/Archived Sessions -->
-      <section v-if="inactiveSessions.length > 0">
-        <h2 class="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-          Archived Sessions
-        </h2>
-        <div class="space-y-3">
-          <SessionCard
-            v-for="session in inactiveSessions"
-            :key="session.id"
-            :session="session"
-          />
-        </div>
-      </section>
-
-      <!-- Sync Status Banner -->
-      <div
-        v-if="!isConnected"
-        class="fixed bottom-4 left-1/2 -translate-x-1/2 bg-yellow-500/90 text-white px-4 py-2 rounded-full text-sm shadow-lg"
-      >
-        Reconnecting to server...
-      </div>
-    </template>
+    <DataTable :data="tableData" @new-session="startNewSession" />
   </div>
 </template>

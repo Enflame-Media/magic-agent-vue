@@ -1,55 +1,25 @@
 <script setup lang="ts">
 /**
- * MessageView - Displays a single message in a conversation
- *
- * Renders different message types with appropriate styling:
- * - User messages: Right-aligned with primary background
- * - Assistant messages: Left-aligned with muted background
- * - System messages: Centered with subtle styling
- *
- * Content is encrypted and decrypted using the session's data encryption key.
+ * MessageView - Renders a normalized message block in a session.
  */
 
 import { computed } from 'vue';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import type { Message } from '@/stores/messages';
+import MarkdownView, { type Option } from './markdown/MarkdownView.vue';
+import ToolView from './tools/ToolView.vue';
+import ToolResult from './ToolResult.vue';
+import type { NormalizedMessage } from '@/services/messages/types';
 
 interface Props {
-  message: Message;
-  /** Decrypted content (plaintext) - in production, decrypt using session key */
-  decryptedContent?: string;
+  message: NormalizedMessage;
+  onOptionPress?: (option: Option) => void;
 }
 
 const props = defineProps<Props>();
 
-// Message role detection from content structure
-const messageRole = computed(() => {
-  try {
-    // Try to parse encrypted content for role hint
-    const content = props.decryptedContent || '{}';
-    const parsed = JSON.parse(content);
-    return parsed.role || 'assistant';
-  } catch {
-    return 'assistant';
-  }
-});
-
-const isUser = computed(() => messageRole.value === 'user');
-const isAssistant = computed(() => messageRole.value === 'assistant');
-const isSystem = computed(() => messageRole.value === 'system');
-
-// Display content (would be decrypted in production)
-const displayContent = computed(() => {
-  if (props.decryptedContent) {
-    try {
-      const parsed = JSON.parse(props.decryptedContent);
-      return parsed.text || parsed.content || props.decryptedContent;
-    } catch {
-      return props.decryptedContent;
-    }
-  }
-  return '[Encrypted content]';
-});
+const isUser = computed(() => props.message.kind === 'user-text');
+const isAssistant = computed(() => props.message.kind === 'agent-text');
+const isSystem = computed(() => props.message.kind === 'system' || props.message.kind === 'agent-event');
 
 // Timestamp formatting
 const timestamp = computed(() => {
@@ -99,8 +69,47 @@ const avatarInitials = computed(() => {
         isSystem && 'bg-muted/50 text-muted-foreground text-sm italic',
       ]"
     >
-      <!-- Message text -->
-      <p class="whitespace-pre-wrap break-words">{{ displayContent }}</p>
+      <MarkdownView
+        v-if="message.kind === 'user-text'"
+        :markdown="message.displayText ?? message.text"
+        :on-option-press="props.onOptionPress"
+      />
+
+      <MarkdownView
+        v-else-if="message.kind === 'agent-text'"
+        :markdown="message.text"
+        :on-option-press="props.onOptionPress"
+      />
+
+      <ToolView
+        v-else-if="message.kind === 'tool-call'"
+        :tool="message.tool"
+        :messages="message.children"
+      />
+
+      <ToolResult
+        v-else-if="message.kind === 'tool-result'"
+        tool-name="Tool result"
+        :result="typeof message.content === 'string' ? message.content : JSON.stringify(message.content, null, 2)"
+        :success="!message.isError"
+      />
+
+      <p v-else-if="message.kind === 'agent-event'" class="whitespace-pre-wrap break-words">
+        <span v-if="message.event.type === 'switch'">
+          Switched to {{ message.event.mode }}
+        </span>
+        <span v-else-if="message.event.type === 'message'">
+          {{ message.event.message }}
+        </span>
+        <span v-else-if="message.event.type === 'limit-reached'">
+          Usage limit until {{ new Date(message.event.endsAt * 1000).toLocaleTimeString() }}
+        </span>
+        <span v-else>System event</span>
+      </p>
+
+      <p v-else-if="message.kind === 'system'" class="whitespace-pre-wrap break-words">
+        {{ message.text }}
+      </p>
 
       <!-- Timestamp -->
       <span

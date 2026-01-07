@@ -16,15 +16,34 @@ import { computed, ref, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useSessionsStore } from '@/stores/sessions';
 import { useMessagesStore } from '@/stores/messages';
-import { MessageView } from '@/components/app';
+import { useAuthStore } from '@/stores/auth';
+import { useMachinesStore, isMachineOnline } from '@/stores/machines';
+import { AgentInput, ChatList } from '@/components/app';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
+import { fetchSessionMessages } from '@/services/sessions';
+import { decryptMessageContent, decryptSessionMetadata } from '@/services/encryption/sessionDecryption';
+import { normalizeDecryptedMessage } from '@/services/messages/normalize';
+import type { NormalizedMessage } from '@/services/messages/types';
+import { sendSessionMessage } from '@/services/sync/messages';
+import { toast } from 'vue-sonner';
+
+interface SessionMetadata {
+  name?: string;
+  title?: string;
+  path?: string;
+  projectPath?: string;
+  machineId?: string;
+  flavor?: string;
+}
 
 const route = useRoute();
 const router = useRouter();
 const sessionsStore = useSessionsStore();
 const messagesStore = useMessagesStore();
+const authStore = useAuthStore();
+const machinesStore = useMachinesStore();
 
 // Session ID from route params
 const sessionId = computed(() => route.params.id as string);
@@ -41,12 +60,68 @@ const messages = computed(() =>
 
 // Loading state
 const isLoading = ref(true);
+const decryptedMetadata = ref<SessionMetadata | null>(null);
+const decryptedContentById = ref<Map<string, string>>(new Map());
+const messageInput = ref('');
+const isSending = ref(false);
+
+async function refreshMetadata(): Promise<void> {
+  if (!session.value) {
+    decryptedMetadata.value = null;
+    return;
+  }
+
+  const currentSession = session.value;
+  const decrypted = await decryptSessionMetadata<SessionMetadata>(currentSession);
+  if (session.value?.id !== currentSession.id) {
+    return;
+  }
+
+  if (decrypted) {
+    decryptedMetadata.value = decrypted;
+    return;
+  }
+
+  try {
+    decryptedMetadata.value = JSON.parse(currentSession.metadata) as SessionMetadata;
+  } catch {
+    decryptedMetadata.value = null;
+  }
+}
+
+async function refreshDecryptedMessages(): Promise<void> {
+  if (!session.value) {
+    decryptedContentById.value = new Map();
+    return;
+  }
+
+  const currentSession = session.value;
+  const currentMessages = messages.value;
+  const results = await Promise.all(
+    currentMessages.map(async (message) => ({
+      id: message.id,
+      content: await decryptMessageContent(message, currentSession),
+    }))
+  );
+
+  if (session.value?.id !== currentSession.id) {
+    return;
+  }
+
+  const next = new Map<string, string>();
+  for (const result of results) {
+    if (result.content !== null) {
+      next.set(result.id, result.content);
+    }
+  }
+  decryptedContentById.value = next;
+}
 
 // Parse session metadata
 const sessionName = computed(() => {
   if (!session.value) return 'Session';
   try {
-    const meta = JSON.parse(session.value.metadata);
+    const meta = decryptedMetadata.value ?? JSON.parse(session.value.metadata);
     return meta.name || meta.title || `Session ${sessionId.value.slice(0, 8)}`;
   } catch {
     return `Session ${sessionId.value.slice(0, 8)}`;
@@ -56,37 +131,129 @@ const sessionName = computed(() => {
 const projectPath = computed(() => {
   if (!session.value) return null;
   try {
-    const meta = JSON.parse(session.value.metadata);
+    const meta = decryptedMetadata.value ?? JSON.parse(session.value.metadata);
     return meta.path || meta.projectPath || null;
   } catch {
     return null;
   }
 });
 
-const isConnected = computed(() => session.value?.active ?? false);
-
-const statusText = computed(() =>
-  isConnected.value ? 'Connected' : 'Disconnected'
-);
+const statusText = computed(() => {
+  if (!session.value) return 'Disconnected';
+  return session.value.active ? 'Connected' : 'Archived';
+});
 
 const statusColor = computed(() =>
-  isConnected.value ? 'text-green-500' : 'text-gray-500'
+  session.value?.active ? 'text-green-500' : 'text-gray-500'
 );
 
+const modelLabel = computed(() => {
+  if (decryptedMetadata.value?.flavor === 'codex' || decryptedMetadata.value?.flavor === 'gpt') {
+    return 'gpt-5-codex high';
+  }
+  return '';
+});
+
+const normalizedMessages = computed<NormalizedMessage[]>(() => {
+  if (!session.value) {
+    return [];
+  }
+
+  const result: NormalizedMessage[] = [];
+  for (const message of messages.value) {
+    const decrypted = decryptedContentById.value.get(message.id);
+    if (!decrypted) {
+      result.push({
+        kind: 'system',
+        id: message.id,
+        localId: message.localId,
+        createdAt: message.createdAt,
+        text: '[Encrypted content]',
+      });
+      continue;
+    }
+
+    const normalized = normalizeDecryptedMessage({
+      id: message.id,
+      localId: message.localId,
+      createdAt: message.createdAt,
+      decrypted,
+    });
+    if (normalized.length === 0) {
+      result.push({
+        kind: 'system',
+        id: message.id,
+        localId: message.localId,
+        createdAt: message.createdAt,
+        text: decrypted,
+      });
+    } else {
+      result.push(...normalized);
+    }
+  }
+
+  return result;
+});
+
+const machineOnline = computed(() => {
+  const machineId = decryptedMetadata.value?.machineId;
+  if (!machineId) return false;
+  const machine = machinesStore.getMachine(machineId);
+  return machine ? isMachineOnline(machine) : false;
+});
+
+async function loadArchivedHistory(): Promise<void> {
+  if (!session.value || session.value.active) {
+    return;
+  }
+
+  if (!authStore.token) {
+    toast.error('Not authenticated');
+    return;
+  }
+
+  try {
+    const apiMessages = await fetchSessionMessages(sessionId.value, authStore.token);
+    const mappedMessages = apiMessages.map((message) => ({
+      id: message.id,
+      sessionId: message.sessionId,
+      seq: message.seq,
+      localId: message.localId ?? null,
+      content: message.content,
+      createdAt: message.createdAt,
+    }));
+    mappedMessages.sort((a, b) => a.seq - b.seq);
+    messagesStore.setMessagesForSession(sessionId.value, mappedMessages);
+  } catch (error) {
+    console.error('[session] Failed to load archived history', error);
+    toast.error('Failed to load session history');
+  }
+}
+
 // Simulate loading completion
-onMounted(() => {
-  globalThis.setTimeout(() => {
-    isLoading.value = false;
-  }, 500);
+onMounted(async () => {
+  await loadArchivedHistory();
+  await refreshMetadata();
+  await refreshDecryptedMessages();
+  isLoading.value = false;
 });
 
 // Watch for route changes
-watch(sessionId, () => {
+watch(sessionId, async () => {
   isLoading.value = true;
-  globalThis.setTimeout(() => {
-    isLoading.value = false;
-  }, 300);
+  await loadArchivedHistory();
+  await refreshMetadata();
+  await refreshDecryptedMessages();
+  isLoading.value = false;
 });
+
+watch(
+  () => [session.value, messages.value],
+  async () => {
+    await refreshMetadata();
+    await refreshDecryptedMessages();
+  }
+);
 
 function goBack() {
   router.push('/');
@@ -95,10 +262,42 @@ function goBack() {
 function navigateToInfo() {
   router.push(`/session/${sessionId.value}/info`);
 }
+
+async function handleSendMessage(): Promise<void> {
+  if (!session.value || !session.value.active) {
+    toast.error('Session is not active');
+    return;
+  }
+
+  if (isSending.value) {
+    return;
+  }
+
+  const text = messageInput.value.trim();
+  if (!text) {
+    return;
+  }
+
+  isSending.value = true;
+  const result = await sendSessionMessage(session.value, text);
+  isSending.value = false;
+
+  if (!result.ok) {
+    toast.error(result.error ?? 'Failed to send message');
+    return;
+  }
+
+  messageInput.value = '';
+}
+
+async function handleOptionPress(option: { title: string }): Promise<void> {
+  messageInput.value = option.title;
+  await handleSendMessage();
+}
 </script>
 
 <template>
-  <div class="flex flex-col h-screen bg-background">
+  <div class="flex flex-col h-full min-h-0 bg-background">
     <!-- Header -->
     <header class="flex items-center gap-4 px-4 py-3 border-b bg-background sticky top-0 z-10">
       <!-- Back button -->
@@ -156,7 +355,7 @@ function navigateToInfo() {
     </header>
 
     <!-- Content -->
-    <ScrollArea class="flex-1">
+    <ScrollArea class="flex-1 min-h-0">
       <!-- Loading state -->
       <template v-if="isLoading">
         <div class="p-4 space-y-4">
@@ -196,14 +395,11 @@ function navigateToInfo() {
       </template>
 
       <!-- Messages -->
-      <template v-else-if="messages.length > 0">
-        <div class="py-4">
-          <MessageView
-            v-for="message in messages"
-            :key="message.id"
-            :message="message"
-          />
-        </div>
+      <template v-else-if="normalizedMessages.length > 0">
+        <ChatList
+          :messages="normalizedMessages"
+          :on-option-press="handleOptionPress"
+        />
       </template>
 
       <!-- Empty messages -->
@@ -231,8 +427,22 @@ function navigateToInfo() {
       </template>
     </ScrollArea>
 
-    <!-- Input area placeholder (read-only for now) -->
-    <div class="border-t p-4 bg-muted/30">
+    <!-- Input area -->
+    <div
+      v-if="session?.active"
+      class="border-t bg-muted/20 px-4 pb-4 pt-3"
+    >
+      <AgentInput
+        v-model="messageInput"
+        :online="machineOnline"
+        :disabled="isSending"
+        :model-label="modelLabel"
+        placeholder="Type a message..."
+        @send="handleSendMessage"
+      />
+    </div>
+
+    <div v-else class="border-t p-4 bg-muted/30">
       <p class="text-sm text-center text-muted-foreground">
         View-only mode. Use the CLI to send messages.
       </p>

@@ -96,7 +96,7 @@ function openSession() {
     @tap="openSession"
   >
     <!-- Status indicator -->
-    <StackLayout col="0" rowSpan="2" class="status-indicator-container" verticalAlignment="center">
+    <StackLayout col="0" row-span="2" class="status-indicator-container" vertical-alignment="center">
       <Label
         text="●"
         class="status-indicator"
@@ -124,10 +124,10 @@ function openSession() {
     <!-- Chevron -->
     <Label
       col="2"
-      rowSpan="2"
+      row-span="2"
       text="›"
       class="chevron"
-      verticalAlignment="center"
+      vertical-alignment="center"
     />
   </GridLayout>
 </template>

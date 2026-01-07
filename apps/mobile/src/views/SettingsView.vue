@@ -81,7 +81,7 @@ function navigateToSubscription(): void {
 </script>
 
 <template>
-  <Page actionBarHidden="false">
+  <Page action-bar-hidden="false">
     <ActionBar title="Settings">
       <NavigationButton text="Back" android.systemIcon="ic_menu_back" @tap="navigateBack" />
     </ActionBar>
@@ -126,7 +126,7 @@ function navigateToSubscription(): void {
               class="setting-subtitle"
             />
           </StackLayout>
-          <StackLayout col="1" orientation="horizontal" verticalAlignment="center">
+          <StackLayout col="1" orientation="horizontal" vertical-alignment="center">
             <Label
               v-if="machinesCount > 0"
               :text="machinesCount.toString()"

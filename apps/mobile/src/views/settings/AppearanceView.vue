@@ -57,7 +57,7 @@ function getFontSizeClass(size: string): string {
 </script>
 
 <template>
-  <Page actionBarHidden="false">
+  <Page action-bar-hidden="false">
     <ActionBar title="Appearance">
       <NavigationButton text="Back" android.systemIcon="ic_menu_back" @tap="navigateBack" />
     </ActionBar>
@@ -120,7 +120,7 @@ function getFontSizeClass(size: string): string {
           <Label
             text="This is how your messages will look with the current settings."
             class="preview-text"
-            textWrap="true"
+            text-wrap="true"
           />
         </StackLayout>
       </StackLayout>

@@ -40,7 +40,7 @@ function isSelected(lang: SupportedLanguage | null): boolean {
 </script>
 
 <template>
-  <Page actionBarHidden="false">
+  <Page action-bar-hidden="false">
     <ActionBar :title="t('settingsLanguage.title')">
       <NavigationButton
         text="Back"
@@ -55,7 +55,7 @@ function isSelected(lang: SupportedLanguage | null): boolean {
         <Label
           :text="t('settingsLanguage.description')"
           class="description"
-          textWrap="true"
+          text-wrap="true"
         />
 
         <!-- Automatic Option -->
@@ -79,7 +79,7 @@ function isSelected(lang: SupportedLanguage | null): boolean {
             col="1"
             text="✓"
             class="checkmark"
-            verticalAlignment="center"
+            vertical-alignment="center"
           />
         </GridLayout>
 
@@ -110,7 +110,7 @@ function isSelected(lang: SupportedLanguage | null): boolean {
               col="1"
               text="✓"
               class="checkmark"
-              verticalAlignment="center"
+              vertical-alignment="center"
             />
           </GridLayout>
         </StackLayout>
