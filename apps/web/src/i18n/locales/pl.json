@@ -905,6 +905,21 @@
       "autoDetect": "Automatyczne wykrywanie"
     }
   },
+  "settingsNotifications": {
+    "title": "Powiadomienia",
+    "alertsTitle": "Alerty",
+    "alertsDescription": "Wybierz sposob powiadamiania.",
+    "enableTitle": "Wlacz powiadomienia",
+    "enableDescription": "Wlacz lub wylacz wszystkie powiadomienia.",
+    "messagesTitle": "Alerty wiadomosci",
+    "messagesDescription": "Powiadamiaj o nowych wiadomosciach.",
+    "sessionActivityTitle": "Aktywnosc sesji",
+    "sessionActivityDescription": "Powiadamiaj o zmianach stanu sesji.",
+    "machineStatusTitle": "Status maszyny",
+    "machineStatusDescription": "Alerty gdy maszyny lacza sie lub rozlaczaja.",
+    "soundsTitle": "Dzwieki",
+    "soundsDescription": "Odtwarzaj dzwiek przy powiadomieniach."
+  },
   "sidebar": {
     "sessionsTitle": "Happy"
   },

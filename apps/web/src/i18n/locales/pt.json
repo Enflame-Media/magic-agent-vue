@@ -906,6 +906,21 @@
       "footer": "{count} idioma disponivel | {count} idiomas disponiveis"
     }
   },
+  "settingsNotifications": {
+    "title": "Notificacoes",
+    "alertsTitle": "Alertas",
+    "alertsDescription": "Escolha como deseja ser notificado.",
+    "enableTitle": "Ativar notificacoes",
+    "enableDescription": "Ative ou desative todas as notificacoes.",
+    "messagesTitle": "Alertas de mensagens",
+    "messagesDescription": "Notificar quando novas mensagens chegarem.",
+    "sessionActivityTitle": "Atividade da sessao",
+    "sessionActivityDescription": "Notificar quando uma sessao mudar de estado.",
+    "machineStatusTitle": "Status da maquina",
+    "machineStatusDescription": "Alertas quando maquinas conectam ou desconectam.",
+    "soundsTitle": "Sons",
+    "soundsDescription": "Reproduzir um som quando alertas chegarem."
+  },
   "sidebar": {
     "sessionsTitle": "Happy"
   },

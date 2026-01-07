@@ -8,11 +8,13 @@
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useSettingsStore, type NotificationSettings } from '@/stores/settings';
+import { useLocale } from '@/composables/useLocale';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 const router = useRouter();
 const settingsStore = useSettingsStore();
+const { t } = useLocale();
 
 const notifications = computed(() => settingsStore.notifications);
 const notificationsEnabled = computed(() => notifications.value.enabled);
@@ -46,21 +48,21 @@ function toggleSetting(key: keyof NotificationSettings) {
           />
         </svg>
       </Button>
-      <h1 class="text-2xl font-semibold">Notifications</h1>
+      <h1 class="text-2xl font-semibold">{{ t('settingsNotifications.title') }}</h1>
     </header>
 
     <div class="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Alerts</CardTitle>
-          <CardDescription>Choose how you want to be notified.</CardDescription>
+          <CardTitle>{{ t('settingsNotifications.alertsTitle') }}</CardTitle>
+          <CardDescription>{{ t('settingsNotifications.alertsDescription') }}</CardDescription>
         </CardHeader>
         <CardContent class="space-y-4">
           <div class="flex items-center justify-between rounded-lg border p-4">
             <div>
-              <p class="font-medium">Enable Notifications</p>
+              <p class="font-medium">{{ t('settingsNotifications.enableTitle') }}</p>
               <p class="text-sm text-muted-foreground">
-                Turn all notifications on or off.
+                {{ t('settingsNotifications.enableDescription') }}
               </p>
             </div>
             <button
@@ -80,8 +82,10 @@ function toggleSetting(key: keyof NotificationSettings) {
 
           <div class="flex items-center justify-between rounded-lg border p-4">
             <div>
-              <p class="font-medium">Message Alerts</p>
-              <p class="text-sm text-muted-foreground">Notify me when new messages arrive.</p>
+              <p class="font-medium">{{ t('settingsNotifications.messagesTitle') }}</p>
+              <p class="text-sm text-muted-foreground">
+                {{ t('settingsNotifications.messagesDescription') }}
+              </p>
             </div>
             <button
               type="button"
@@ -101,8 +105,10 @@ function toggleSetting(key: keyof NotificationSettings) {
 
           <div class="flex items-center justify-between rounded-lg border p-4">
             <div>
-              <p class="font-medium">Session Activity</p>
-              <p class="text-sm text-muted-foreground">Get notified when a session changes state.</p>
+              <p class="font-medium">{{ t('settingsNotifications.sessionActivityTitle') }}</p>
+              <p class="text-sm text-muted-foreground">
+                {{ t('settingsNotifications.sessionActivityDescription') }}
+              </p>
             </div>
             <button
               type="button"
@@ -122,8 +128,10 @@ function toggleSetting(key: keyof NotificationSettings) {
 
           <div class="flex items-center justify-between rounded-lg border p-4">
             <div>
-              <p class="font-medium">Machine Status</p>
-              <p class="text-sm text-muted-foreground">Alerts when machines connect or disconnect.</p>
+              <p class="font-medium">{{ t('settingsNotifications.machineStatusTitle') }}</p>
+              <p class="text-sm text-muted-foreground">
+                {{ t('settingsNotifications.machineStatusDescription') }}
+              </p>
             </div>
             <button
               type="button"
@@ -143,8 +151,10 @@ function toggleSetting(key: keyof NotificationSettings) {
 
           <div class="flex items-center justify-between rounded-lg border p-4">
             <div>
-              <p class="font-medium">Sounds</p>
-              <p class="text-sm text-muted-foreground">Play a sound when alerts arrive.</p>
+              <p class="font-medium">{{ t('settingsNotifications.soundsTitle') }}</p>
+              <p class="text-sm text-muted-foreground">
+                {{ t('settingsNotifications.soundsDescription') }}
+              </p>
             </div>
             <button
               type="button"

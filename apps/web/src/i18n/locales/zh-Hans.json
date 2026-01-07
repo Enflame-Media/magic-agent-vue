@@ -905,6 +905,21 @@
       "autoDetect": "自动检测"
     }
   },
+  "settingsNotifications": {
+    "title": "通知",
+    "alertsTitle": "提醒",
+    "alertsDescription": "选择你希望接收提醒的方式。",
+    "enableTitle": "启用通知",
+    "enableDescription": "开启或关闭所有通知。",
+    "messagesTitle": "消息提醒",
+    "messagesDescription": "有新消息时通知我。",
+    "sessionActivityTitle": "会话活动",
+    "sessionActivityDescription": "会话状态变化时通知。",
+    "machineStatusTitle": "设备状态",
+    "machineStatusDescription": "设备连接或断开时提醒。",
+    "soundsTitle": "声音",
+    "soundsDescription": "提醒时播放声音。"
+  },
   "sidebar": {
     "sessionsTitle": "Happy"
   },

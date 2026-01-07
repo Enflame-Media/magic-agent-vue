@@ -905,6 +905,21 @@
       "footer": "{count} idioma disponible | {count} idiomas disponibles"
     }
   },
+  "settingsNotifications": {
+    "title": "Notificaciones",
+    "alertsTitle": "Alertas",
+    "alertsDescription": "Elige cómo quieres recibir alertas.",
+    "enableTitle": "Activar notificaciones",
+    "enableDescription": "Activa o desactiva todas las notificaciones.",
+    "messagesTitle": "Alertas de mensajes",
+    "messagesDescription": "Notificar cuando lleguen mensajes nuevos.",
+    "sessionActivityTitle": "Actividad de sesión",
+    "sessionActivityDescription": "Notificar cuando una sesión cambie de estado.",
+    "machineStatusTitle": "Estado de la máquina",
+    "machineStatusDescription": "Alertas cuando las máquinas se conectan o desconectan.",
+    "soundsTitle": "Sonidos",
+    "soundsDescription": "Reproducir un sonido cuando lleguen alertas."
+  },
   "sidebar": {
     "sessionsTitle": "Happy"
   },

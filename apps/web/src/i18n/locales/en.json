@@ -902,6 +902,21 @@
       "footer": "{count} language available | {count} languages available"
     }
   },
+  "settingsNotifications": {
+    "title": "Notifications",
+    "alertsTitle": "Alerts",
+    "alertsDescription": "Choose how you want to be notified.",
+    "enableTitle": "Enable Notifications",
+    "enableDescription": "Turn all notifications on or off.",
+    "messagesTitle": "Message Alerts",
+    "messagesDescription": "Notify me when new messages arrive.",
+    "sessionActivityTitle": "Session Activity",
+    "sessionActivityDescription": "Get notified when a session changes state.",
+    "machineStatusTitle": "Machine Status",
+    "machineStatusDescription": "Alerts when machines connect or disconnect.",
+    "soundsTitle": "Sounds",
+    "soundsDescription": "Play a sound when alerts arrive."
+  },
   "sidebar": {
     "sessionsTitle": "Happy"
   },

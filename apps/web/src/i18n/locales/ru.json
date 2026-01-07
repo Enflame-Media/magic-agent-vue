@@ -906,6 +906,21 @@
       "footer": "{count} язык доступен | {count} языков доступно"
     }
   },
+  "settingsNotifications": {
+    "title": "Уведомления",
+    "alertsTitle": "Оповещения",
+    "alertsDescription": "Выберите, как получать уведомления.",
+    "enableTitle": "Включить уведомления",
+    "enableDescription": "Включить или отключить все уведомления.",
+    "messagesTitle": "Оповещения о сообщениях",
+    "messagesDescription": "Уведомлять о новых сообщениях.",
+    "sessionActivityTitle": "Активность сессии",
+    "sessionActivityDescription": "Уведомлять при изменении состояния сессии.",
+    "machineStatusTitle": "Статус машины",
+    "machineStatusDescription": "Оповещения при подключении или отключении машин.",
+    "soundsTitle": "Звуки",
+    "soundsDescription": "Воспроизводить звук при уведомлениях."
+  },
   "sidebar": {
     "sessionsTitle": "Happy"
   },
