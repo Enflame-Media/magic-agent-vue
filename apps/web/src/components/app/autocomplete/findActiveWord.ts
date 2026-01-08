@@ -7,8 +7,8 @@ export type ActiveWord = {
 export function findActiveWord(value: string, cursor: number): ActiveWord | null {
     const left = value.slice(0, cursor);
     const right = value.slice(cursor);
-    const leftMatch = left.match(/[\w\-]+$/);
-    const rightMatch = right.match(/^[\w\-]+/);
+    const leftMatch = left.match(/[\w-]+$/);
+    const rightMatch = right.match(/^[\w-]+/);
 
     if (!leftMatch && !rightMatch) {
         return null;

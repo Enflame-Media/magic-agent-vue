@@ -150,7 +150,6 @@ export async function waitForAuthentication(
   // Start the auth request
   await startAuthRequest(keypair.publicKey);
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   while (true) {
     if (shouldCancel?.()) {
       return null;
@@ -165,7 +164,6 @@ export async function waitForAuthentication(
         const decrypted = decryptBox(encryptedResponse, keypair.secretKey);
 
         if (!decrypted) {
-           
           console.error('[Auth] Failed to decrypt server response');
           return null;
         }
@@ -185,7 +183,6 @@ export async function waitForAuthentication(
         return credentials;
       }
     } catch {
-       
       console.error('[Auth] Failed to check auth status');
       return null;
     }
@@ -292,7 +289,6 @@ export async function approveCliConnection(
     return;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (status === 'pending') {
     // Create response using the secret
     // V1: just the secret, V2: version byte (0) + public key

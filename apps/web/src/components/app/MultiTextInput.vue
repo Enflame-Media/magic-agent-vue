@@ -22,7 +22,7 @@ const emit = defineEmits<{
 
 const localValue = computed({
   get: () => props.modelValue,
-  set: (value: string) => emit('update:modelValue', value),
+  set: (value: string) => { emit('update:modelValue', value); },
 });
 
 const textareaRef = ref<HTMLTextAreaElement | null>(null);

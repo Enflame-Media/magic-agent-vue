@@ -54,7 +54,6 @@ const API_URL = getApiBaseUrl();
  *
  * @returns Session revival state and control functions
  */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Returns complex object literal type
 export function useSessionRevival() {
   const { t } = useI18n();
   const authStore = useAuthStore();

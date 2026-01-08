@@ -83,7 +83,7 @@ export function parseMarkdownBlock(markdown: string): MarkdownBlock[] {
             }
         }
 
-        let trimmed = line.trim();
+        const trimmed = line.trim();
 
         if (trimmed.startsWith('```')) {
             const language = trimmed.slice(3).trim() || null;

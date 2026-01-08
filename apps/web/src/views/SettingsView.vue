@@ -63,6 +63,22 @@ function navigateToVoice() {
   router.push('/settings/voice');
 }
 
+function navigateToFeatures() {
+  router.push('/settings/features');
+}
+
+function navigateToClaudeConnect() {
+  router.push('/settings/connect/claude');
+}
+
+function navigateToServer() {
+  router.push('/settings/server');
+}
+
+function navigateToMcp() {
+  router.push('/settings/mcp');
+}
+
 function navigateToFriends() {
   router.push('/friends');
 }
@@ -171,6 +187,43 @@ function openGitHub() {
                 <div class="text-left">
                   <p class="font-medium">Account</p>
                   <p class="text-sm text-muted-foreground">Profile, connections</p>
+                </div>
+              </div>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5 text-muted-foreground"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+            <button
+              class="w-full flex items-center justify-between p-4 hover:bg-accent transition-colors"
+              @click="navigateToClaudeConnect"
+            >
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-5 w-5 text-amber-500"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M8 9l4-4 4 4M16 15l-4 4-4-4M12 5v14"
+                    />
+                  </svg>
+                </div>
+                <div class="text-left">
+                  <p class="font-medium">Connect Claude</p>
+                  <p class="text-sm text-muted-foreground">Link a CLI to this account</p>
                 </div>
               </div>
               <svg
@@ -394,7 +447,7 @@ function openGitHub() {
               </svg>
             </button>
             <button
-              class="w-full flex items-center justify-between p-4 hover:bg-accent transition-colors"
+              class="w-full flex items-center justify-between p-4 hover:bg-accent transition-colors border-b"
               @click="navigateToVoice"
             >
               <div class="flex items-center gap-3">
@@ -417,6 +470,117 @@ function openGitHub() {
                 <div class="text-left">
                   <p class="font-medium">Voice Assistant</p>
                   <p class="text-sm text-muted-foreground">Voice language preferences</p>
+                </div>
+              </div>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5 text-muted-foreground"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+            <button
+              class="w-full flex items-center justify-between p-4 hover:bg-accent transition-colors border-b"
+              @click="navigateToFeatures"
+            >
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-5 w-5 text-emerald-500"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M12 3v4m0 10v4m9-9h-4M7 12H3m14.364-4.364l-2.828 2.828M9.464 16.536l-2.828 2.828m0-11.314l2.828 2.828m7.072 7.072l2.828 2.828"
+                    />
+                  </svg>
+                </div>
+                <div class="text-left">
+                  <p class="font-medium">Features</p>
+                  <p class="text-sm text-muted-foreground">Experimental toggles</p>
+                </div>
+              </div>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5 text-muted-foreground"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+            <button
+              class="w-full flex items-center justify-between p-4 hover:bg-accent transition-colors border-b"
+              @click="navigateToMcp"
+            >
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-slate-500/10 flex items-center justify-center">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-5 w-5 text-slate-600"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M20 7l-8-4-8 4m16 0v10l-8 4m8-14l-8 4m0 10l-8-4m8 4V7m0 10l8-4"
+                    />
+                  </svg>
+                </div>
+                <div class="text-left">
+                  <p class="font-medium">MCP Servers</p>
+                  <p class="text-sm text-muted-foreground">Connected tool servers</p>
+                </div>
+              </div>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5 text-muted-foreground"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+            <button
+              class="w-full flex items-center justify-between p-4 hover:bg-accent transition-colors"
+              @click="navigateToServer"
+            >
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-gray-500/10 flex items-center justify-center">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-5 w-5 text-gray-600"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M5 12h14M5 6h14M5 18h14"
+                    />
+                  </svg>
+                </div>
+                <div class="text-left">
+                  <p class="font-medium">Server</p>
+                  <p class="text-sm text-muted-foreground">API endpoint</p>
                 </div>
               </div>
               <svg

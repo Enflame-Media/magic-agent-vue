@@ -128,12 +128,12 @@ const columns: ColumnDef<TableData>[] = [
     id: 'select',
     header: ({ table }) => h(Checkbox, {
       modelValue: table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && 'indeterminate'),
-      'onUpdate:modelValue': (value) => table.toggleAllPageRowsSelected(!!value),
+      'onUpdate:modelValue': (value) => { table.toggleAllPageRowsSelected(!!value); },
       'aria-label': 'Select all',
     }),
     cell: ({ row }) => h(Checkbox, {
       modelValue: row.getIsSelected(),
-      'onUpdate:modelValue': (value) => row.toggleSelected(!!value),
+      'onUpdate:modelValue': (value) => { row.toggleSelected(!!value); },
       'aria-label': 'Select row',
     }),
     enableSorting: false,
@@ -143,11 +143,11 @@ const columns: ColumnDef<TableData>[] = [
     accessorKey: 'name',
     header: 'Session',
     cell: ({ row }) => {
-      const name = row.getValue('name') as string;
+      const name = row.getValue<string>('name');
       const path = row.original.path;
 
       return h('div', { class: 'flex flex-col gap-1' }, [
-        h('span', { class: 'text-sm font-medium' }, name),
+        h('span', { class: 'text-sm font-medium' }, String(name ?? '')),
         h('span', { class: 'text-xs text-muted-foreground' }, path || 'No project path'),
       ]);
     },
@@ -157,7 +157,7 @@ const columns: ColumnDef<TableData>[] = [
     accessorKey: 'status',
     header: 'Status',
     cell: ({ row }) => {
-      const status = row.getValue('status') as string;
+      const status = row.getValue('status');
       const isActive = status === 'Active';
 
       return h(Badge, {

@@ -34,7 +34,7 @@ const emit = defineEmits<{
 
 const localValue = computed({
   get: () => props.modelValue,
-  set: (value: string) => emit('update:modelValue', value),
+  set: (value: string) => { emit('update:modelValue', value); },
 });
 
 const activeSuggestionIndex = ref(0);
@@ -163,8 +163,8 @@ watch(suggestions, (next) => {
         size="icon"
         class="h-9 w-9 rounded-full bg-background/60 text-foreground"
         :disabled="disabled || localValue.trim().length === 0"
-        @click="emit('send')"
         aria-label="Send message"
+        @click="emit('send')"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"

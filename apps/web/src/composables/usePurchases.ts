@@ -88,7 +88,6 @@ interface RCProduct {
 }
 
 // Placeholder for the actual SDK
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let Purchases: any = null;
 let purchasesInstance: PurchasesInstance | null = null;
 

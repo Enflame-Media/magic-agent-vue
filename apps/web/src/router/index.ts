@@ -137,6 +137,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/settings/features',
+      name: 'settings-features',
+      component: () => import('@/views/settings/FeaturesView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/settings/privacy',
       name: 'settings-privacy',
       component: () => import('@/views/settings/PrivacyView.vue'),
@@ -146,6 +152,30 @@ const router = createRouter({
       path: '/settings/voice',
       name: 'settings-voice',
       component: () => import('@/views/settings/VoiceView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/settings/connect/claude',
+      name: 'settings-connect-claude',
+      component: () => import('@/views/settings/ClaudeConnectView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/settings/server',
+      name: 'settings-server',
+      component: () => import('@/views/settings/ServerView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/settings/mcp',
+      name: 'settings-mcp',
+      component: () => import('@/views/settings/McpView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/settings/mcp/:server',
+      name: 'settings-mcp-server',
+      component: () => import('@/views/settings/McpServerView.vue'),
       meta: { requiresAuth: true },
     },
 

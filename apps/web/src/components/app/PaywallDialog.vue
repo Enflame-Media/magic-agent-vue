@@ -174,7 +174,7 @@ async function handleRestore() {
     await restorePurchases();
     emit('restored');
     dialogOpen.value = false;
-  } catch (error) {
+  } catch {
     emit('error', 'Failed to restore purchases. Please try again.');
   }
 }
