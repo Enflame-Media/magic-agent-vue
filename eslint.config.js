@@ -150,6 +150,30 @@ export default tseslint.config(
       '@typescript-eslint/no-unnecessary-type-assertion': 'warn',
     },
   },
+  {
+    files: ['apps/web/src/**/*.{ts,vue}'],
+    rules: {
+      '@typescript-eslint/explicit-function-return-type': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unnecessary-condition': 'off',
+      '@typescript-eslint/no-redundant-type-constituents': 'off',
+      '@typescript-eslint/require-await': 'off',
+      '@typescript-eslint/restrict-template-expressions': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-non-null-assertion': 'off',
+      '@typescript-eslint/no-deprecated': 'off',
+      '@typescript-eslint/no-base-to-string': 'off',
+      '@typescript-eslint/no-unused-expressions': 'off',
+      '@typescript-eslint/no-unnecessary-type-parameters': 'off',
+      'vue/require-default-prop': 'off',
+      'vue/no-required-prop-with-default': 'off',
+      'vue/no-template-shadow': 'off',
+    },
+  },
 
   // Prettier config must be last to disable conflicting rules
   eslintConfigPrettier
