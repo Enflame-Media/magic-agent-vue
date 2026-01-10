@@ -1,17 +1,19 @@
 <script setup lang="ts">
 /**
- * CodeBlock - Syntax highlighted code display
+ * CodeBlock - Syntax highlighted code display with Shiki
  *
  * Renders code snippets with:
+ * - Shiki syntax highlighting (VS Code quality)
  * - Language label (optional)
  * - Copy to clipboard button
- * - Proper monospace styling
- * - Horizontal scroll for long lines
- * - Lightweight syntax highlighting
+ * - Dark/light theme support via CSS variables
+ * - Graceful fallback for unsupported languages
+ * - Lazy loading of the highlighter
  */
 
-import { ref, computed } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { Button } from '@/components/ui/button';
+import { useShiki } from '@/composables/useShiki';
 import { tokenizeCode, type SyntaxToken } from './simpleSyntaxHighlighter';
 
 interface Props {
@@ -28,13 +30,87 @@ const props = withDefaults(defineProps<Props>(), {
   filename: '',
 });
 
+const { highlightCode, highlightCodeSync, isReady } = useShiki();
+
 const copied = ref(false);
-const tokens = computed<SyntaxToken[]>(() => tokenizeCode(props.code, props.language || null));
+const highlightedHtml = ref<string | null>(null);
+const isHighlighting = ref(false);
+
+/**
+ * Simple syntax tokens as fallback when Shiki is loading or unavailable.
+ */
+const fallbackTokens = computed<SyntaxToken[]>(() =>
+  tokenizeCode(props.code, props.language || null)
+);
 
 const displayLabel = computed(() => {
   if (props.filename) return props.filename;
   if (props.language) return props.language;
   return 'code';
+});
+
+/**
+ * Whether to use Shiki highlighting (vs fallback).
+ * Only use Shiki when we have valid HTML output.
+ */
+const useShikiHighlighting = computed(() => {
+  return highlightedHtml.value !== null && highlightedHtml.value.trim() !== '';
+});
+
+/**
+ * Performs Shiki highlighting for the current code.
+ */
+async function performHighlighting(): Promise<void> {
+  if (!props.language || isHighlighting.value) {
+    return;
+  }
+
+  // First, try synchronous highlighting if available
+  const syncResult = highlightCodeSync(props.code, props.language);
+  if (syncResult) {
+    highlightedHtml.value = syncResult;
+    return;
+  }
+
+  isHighlighting.value = true;
+
+  try {
+    const html = await highlightCode(props.code, props.language);
+    // Only use Shiki output if it contains actual highlighted spans
+    // (not just escaped text for unsupported languages)
+    if (html.includes('class="shiki"') || html.includes('<span')) {
+      highlightedHtml.value = html;
+    } else {
+      // Shiki returned escaped text, use fallback instead
+      highlightedHtml.value = null;
+    }
+  } catch {
+    // On error, stick with fallback
+    highlightedHtml.value = null;
+  } finally {
+    isHighlighting.value = false;
+  }
+}
+
+// Highlight on mount
+onMounted(() => {
+  performHighlighting();
+});
+
+// Re-highlight when code or language changes
+watch(
+  () => [props.code, props.language],
+  () => {
+    highlightedHtml.value = null;
+    performHighlighting();
+  }
+);
+
+// Re-highlight when Shiki becomes ready
+watch(isReady, (ready) => {
+  if (ready && !highlightedHtml.value) {
+    performHighlighting();
+  }
 });
 
 async function copyToClipboard() {
@@ -59,6 +135,7 @@ async function copyToClipboard() {
   }
 }
 
+// Fallback token styling (for when Shiki is unavailable)
 const tokenWeightTypes = new Set(['keyword', 'controlFlow', 'type', 'function']);
 const bracketColors = [
   'var(--syntax-bracket-1)',
@@ -160,9 +237,16 @@ function tokenStyle(token: SyntaxToken): Record<string, string> {
 
     <!-- Code content -->
     <div class="overflow-x-auto">
-      <pre class="p-4 text-sm leading-relaxed">
+      <!-- Shiki highlighted output -->
+      <div
+        v-if="useShikiHighlighting"
+        class="shiki-container p-4 text-sm leading-relaxed"
+        v-html="highlightedHtml"
+      />
+      <!-- Fallback: simple syntax highlighting -->
+      <pre v-else class="p-4 text-sm leading-relaxed">
         <code class="font-mono whitespace-pre-wrap"><span
-          v-for="(token, index) in tokens"
+          v-for="(token, index) in fallbackTokens"
           :key="index"
           :style="tokenStyle(token)"
           v-text="token.text"
@@ -171,3 +255,41 @@ function tokenStyle(token: SyntaxToken): Record<string, string> {
     </div>
   </div>
 </template>
+
+<style scoped>
+/**
+ * Shiki container styles for dual-theme support.
+ * Shiki outputs CSS variables --shiki-light and --shiki-dark.
+ */
+.shiki-container :deep(.shiki) {
+  margin: 0;
+  padding: 0;
+  background-color: transparent !important;
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.shiki-container :deep(.shiki code) {
+  display: block;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Light theme: use --shiki-light colors */
+.shiki-container :deep(.shiki),
+.shiki-container :deep(.shiki span) {
+  color: var(--shiki-light) !important;
+}
+
+/* Dark theme: use --shiki-dark colors */
+:global(.dark) .shiki-container :deep(.shiki),
+:global(.dark) .shiki-container :deep(.shiki span) {
+  color: var(--shiki-dark) !important;
+}
+
+/* Remove Shiki's background color, use our own */
+.shiki-container :deep(.shiki) {
+  background-color: transparent !important;
+}
+</style>

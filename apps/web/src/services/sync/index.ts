@@ -21,3 +21,12 @@
 
 export { wsService } from './WebSocketService';
 export { setupSyncHandlers, areHandlersSetup } from './handlers';
+export {
+    getEncryptionManager,
+    resetEncryptionManager,
+    getArtifactEncryption,
+    storeArtifactKey,
+    getArtifactKey,
+    removeArtifactKey,
+    clearArtifactKeys,
+} from './artifactSync';

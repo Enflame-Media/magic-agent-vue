@@ -16,13 +16,18 @@ import {
     ApiEphemeralUpdateSchema,
     type ApiUpdateContainer,
     type ApiEphemeralUpdate,
+    type ApiNewArtifact,
+    type ApiUpdateArtifact,
+    type ApiDeleteArtifact,
 } from '@happy-vue/protocol';
 import { useSessionsStore } from '@/stores/sessions';
 import { useMessagesStore } from '@/stores/messages';
 import { useMachinesStore } from '@/stores/machines';
+import { useArtifactsStore } from '@/stores/artifacts';
 import { useSyncStore } from '@/stores/sync';
 import { useAuthStore } from '@/stores/auth';
 import { wsService } from './WebSocketService';
+import { getEncryptionManager, getArtifactEncryption, storeArtifactKey, removeArtifactKey } from './artifactSync';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Update Handler
@@ -165,12 +170,138 @@ function handleUpdate(data: unknown): void {
             break;
         }
 
-        case 'new-artifact':
-        case 'update-artifact':
-        case 'delete-artifact':
-            // Artifacts not yet implemented in happy-vue
-            // Will be handled in a future issue
+        case 'new-artifact': {
+            // HAP-708: Handle new artifact creation
+            const artifactUpdate = update as ApiNewArtifact;
+            const artifactId = artifactUpdate.artifactId;
+            const artifactsStore = useArtifactsStore();
+
+            // First, add to store with placeholder data
+            artifactsStore.upsertFromApi(artifactUpdate);
+
+            // Then decrypt header asynchronously
+            (async () => {
+                try {
+                    const artifactEncryption = await getArtifactEncryption(
+                        artifactId,
+                        artifactUpdate.dataEncryptionKey
+                    );
+                    if (!artifactEncryption) {
+                        console.error(`[sync] Failed to get encryption for artifact ${artifactId}`);
+                        return;
+                    }
+
+                    // Store the key for future updates
+                    const encryptionManager = await getEncryptionManager();
+                    if (encryptionManager) {
+                        const decryptedKey = await encryptionManager.decryptEncryptionKey(
+                            artifactUpdate.dataEncryptionKey
+                        );
+                        if (decryptedKey) {
+                            storeArtifactKey(artifactId, decryptedKey);
+                        }
+                    }
+
+                    // Decrypt header
+                    const header = await artifactEncryption.decryptHeader(artifactUpdate.header);
+                    if (header) {
+                        artifactsStore.applyDecryptedHeader(artifactId, {
+                            title: header.title,
+                            mimeType: header.mimeType,
+                            filePath: header.filePath,
+                            language: header.language,
+                            sessions: header.sessions,
+                        });
+                    }
+
+                    // Decrypt body if provided
+                    if (artifactUpdate.body) {
+                        const body = await artifactEncryption.decryptBody(artifactUpdate.body);
+                        artifactsStore.applyDecryptedBody(artifactId, body?.body ?? null);
+                    }
+
+                    console.debug(`[sync] Processed new artifact ${artifactId}`);
+                } catch (error) {
+                    console.error(`[sync] Failed to process new artifact ${artifactId}:`, error);
+                }
+            })();
             break;
+        }
+
+        case 'update-artifact': {
+            // HAP-708: Handle artifact updates
+            const artifactUpdate = update as ApiUpdateArtifact;
+            const artifactId = artifactUpdate.artifactId;
+            const artifactsStore = useArtifactsStore();
+
+            // Check if artifact exists
+            const existingArtifact = artifactsStore.getArtifact(artifactId);
+            if (!existingArtifact) {
+                console.warn(`[sync] Artifact ${artifactId} not found for update`);
+                // TODO: Could trigger a full artifacts sync here
+                break;
+            }
+
+            // Decrypt and apply updates asynchronously
+            (async () => {
+                try {
+                    const artifactEncryption = await getArtifactEncryption(artifactId);
+                    if (!artifactEncryption) {
+                        console.error(`[sync] No encryption key for artifact ${artifactId}`);
+                        return;
+                    }
+
+                    // Update header if provided
+                    if (artifactUpdate.header) {
+                        const header = await artifactEncryption.decryptHeader(artifactUpdate.header.value);
+                        if (header) {
+                            artifactsStore.applyDecryptedHeader(artifactId, {
+                                title: header.title,
+                                mimeType: header.mimeType,
+                                filePath: header.filePath,
+                                language: header.language,
+                                sessions: header.sessions,
+                            });
+                            artifactsStore.updateArtifact(artifactId, {
+                                headerVersion: artifactUpdate.header.version,
+                                updatedAt: container.createdAt,
+                            });
+                        }
+                    }
+
+                    // Update body if provided
+                    if (artifactUpdate.body) {
+                        const body = await artifactEncryption.decryptBody(artifactUpdate.body.value);
+                        artifactsStore.applyDecryptedBody(artifactId, body?.body ?? null);
+                        artifactsStore.updateArtifact(artifactId, {
+                            bodyVersion: artifactUpdate.body.version,
+                            updatedAt: container.createdAt,
+                        });
+                    }
+
+                    console.debug(`[sync] Updated artifact ${artifactId}`);
+                } catch (error) {
+                    console.error(`[sync] Failed to update artifact ${artifactId}:`, error);
+                }
+            })();
+            break;
+        }
+
+        case 'delete-artifact': {
+            // HAP-708: Handle artifact deletion
+            const artifactUpdate = update as ApiDeleteArtifact;
+            const artifactId = artifactUpdate.artifactId;
+            const artifactsStore = useArtifactsStore();
+
+            // Remove from store
+            artifactsStore.removeArtifact(artifactId);
+
+            // Remove encryption key from memory
+            removeArtifactKey(artifactId);
+
+            console.debug(`[sync] Deleted artifact ${artifactId}`);
+            break;
+        }
 
         case 'relationship-updated':
         case 'new-feed-post':
