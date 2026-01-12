@@ -35,3 +35,6 @@ export { default as LanguageSelector } from './LanguageSelector.vue';
 export { default as FriendRequestCard } from './FriendRequestCard.vue';
 export { default as UserProfileCard } from './UserProfileCard.vue';
 export { default as UserSearch } from './UserSearch.vue';
+
+// Voice components
+export { VoiceBars, VoiceStatusBar, VoiceButton } from './voice';
