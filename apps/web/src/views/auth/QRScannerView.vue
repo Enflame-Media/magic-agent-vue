@@ -4,6 +4,8 @@
  *
  * This is used when the web app is already authenticated
  * and the user wants to approve a CLI connection.
+ *
+ * @see HAP-814 - Implements real key exchange and session establishment
  */
 
 import { ref, computed } from 'vue';
@@ -12,12 +14,12 @@ import QRScanner from '@/components/app/QRScanner.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Keyboard, CheckCircle2, AlertCircle, Loader2 } from 'lucide-vue-next';
-import { parseConnectionCode, approveCliConnection } from '@/services/auth';
-import { useAuthStore } from '@/stores/auth';
+import { useAuth } from '@/composables/useAuth';
+import { CliConnectionError } from '@/services/auth';
 import { toast } from 'vue-sonner';
 
 const router = useRouter();
-const authStore = useAuthStore();
+const { connectToCli, canApproveConnections } = useAuth();
 
 type ConnectionState = 'scanning' | 'connecting' | 'success' | 'error';
 
@@ -28,28 +30,32 @@ const isScanning = computed(() => state.value === 'scanning');
 
 /**
  * Handle successful QR scan
+ *
+ * Performs the real key exchange:
+ * 1. Parse QR code to get CLI's public key
+ * 2. Check server for pending auth request
+ * 3. Encrypt shared secret with CLI's public key
+ * 4. Send encrypted response to server
  */
 async function handleScan(data: string) {
   if (state.value !== 'scanning') return;
 
   state.value = 'connecting';
 
-  try {
-    // Parse the QR code to get CLI's public key
-    const connectionInfo = parseConnectionCode(data);
+  // Check if we're authenticated first
+  if (!canApproveConnections.value) {
+    state.value = 'error';
+    errorMessage.value = 'Please log in first before connecting a CLI.';
+    toast.error('Not Authenticated', {
+      description: errorMessage.value,
+    });
+    return;
+  }
 
-    // Check if we have credentials to approve the connection
-    if (!authStore.canApproveConnections || !authStore.token || !authStore.secret) {
-      throw new Error('Not authenticated. Please log in first.');
-    }
+  // Perform the real CLI connection with encryption
+  const result = await connectToCli(data);
 
-    // Approve the CLI connection
-    await approveCliConnection(
-      authStore.token,
-      connectionInfo.publicKey,
-      authStore.secret
-    );
-
+  if (result.success) {
     toast.success('CLI Connected!', {
       description: 'The terminal session is now linked to your account',
     });
@@ -60,11 +66,18 @@ async function handleScan(data: string) {
     setTimeout(() => {
       router.push('/');
     }, 2000);
-  } catch (error) {
-    console.error('[QRScanner] Connection failed:', error);
+  } else {
+    console.error('[QRScanner] Connection failed:', result.errorCode, result.errorMessage);
     state.value = 'error';
-    errorMessage.value =
-      error instanceof Error ? error.message : 'Failed to connect';
+
+    // Set appropriate error message based on error code
+    if (result.errorCode === CliConnectionError.NOT_FOUND) {
+      errorMessage.value = 'QR code expired. Please generate a new one in the CLI.';
+    } else if (result.errorCode === 'parse_error') {
+      errorMessage.value = 'Invalid QR code format. Please scan a valid Happy CLI QR code.';
+    } else {
+      errorMessage.value = result.errorMessage ?? 'Failed to connect';
+    }
 
     toast.error('Connection Failed', {
       description: errorMessage.value,

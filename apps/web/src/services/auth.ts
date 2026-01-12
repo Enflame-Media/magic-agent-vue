@@ -16,6 +16,7 @@ import { normalizeSecretKey } from './secretKey';
 import {
   generateBoxKeyPair,
   decryptBox,
+  encryptBox,
   generateSigningKeyPair,
   signDetached,
   randomBytes,
@@ -259,11 +260,44 @@ export async function authenticateWithSecretKey(
 }
 
 /**
+ * Error codes for CLI connection approval
+ */
+export const CliConnectionError = {
+  NOT_FOUND: 'not_found',
+  ALREADY_AUTHORIZED: 'already_authorized',
+  STATUS_CHECK_FAILED: 'status_check_failed',
+  APPROVAL_FAILED: 'approval_failed',
+  EXPIRED: 'expired',
+} as const;
+
+export type CliConnectionErrorCode = typeof CliConnectionError[keyof typeof CliConnectionError];
+
+/**
+ * Custom error class for CLI connection failures with specific error codes
+ */
+export class CliApprovalError extends Error {
+  constructor(
+    public readonly code: CliConnectionErrorCode,
+    message: string
+  ) {
+    super(message);
+    this.name = 'CliApprovalError';
+  }
+}
+
+/**
  * Approve a CLI connection request
+ *
+ * This function performs the real key exchange:
+ * 1. Checks the auth request status on the server
+ * 2. Encrypts the shared secret using the CLI's public key (box encryption)
+ * 3. Sends the encrypted response to the server
+ * 4. CLI will poll and receive the encrypted response, then decrypt with its private key
  *
  * @param token - Current auth token
  * @param cliPublicKey - The CLI's public key (from QR code)
  * @param secret - The shared secret (base64 encoded)
+ * @throws {CliApprovalError} If connection fails with specific error code
  */
 export async function approveCliConnection(
   token: string,
@@ -274,46 +308,83 @@ export async function approveCliConnection(
   const publicKeyBase64 = encodeBase64(cliPublicKey);
 
   // Check auth request status
-  const statusResponse = await fetch(
-    `${SERVER_URL}/v1/auth/request/status?publicKey=${encodeURIComponent(publicKeyBase64)}`
-  );
+  let statusResponse: Response;
+  try {
+    statusResponse = await fetch(
+      `${SERVER_URL}/v1/auth/request/status?publicKey=${encodeURIComponent(publicKeyBase64)}`
+    );
+  } catch {
+    throw new CliApprovalError(
+      CliConnectionError.STATUS_CHECK_FAILED,
+      'Network error while checking connection status'
+    );
+  }
 
   if (!statusResponse.ok) {
-    throw new Error(`Status check failed: ${String(statusResponse.status)}`);
+    throw new CliApprovalError(
+      CliConnectionError.STATUS_CHECK_FAILED,
+      `Status check failed: ${String(statusResponse.status)}`
+    );
   }
 
   const { status, supportsV2 } = (await statusResponse.json()) as AuthRequestStatus;
 
-  if (status === 'not_found' || status === 'authorized') {
-    // Already handled
-    return;
+  if (status === 'not_found') {
+    // QR code expired or invalid
+    throw new CliApprovalError(
+      CliConnectionError.NOT_FOUND,
+      'Connection request not found. The QR code may have expired. Please generate a new QR code in the CLI.'
+    );
+  }
+
+  if (status === 'authorized') {
+    // Already connected - this is not an error, but we should inform the user
+    throw new CliApprovalError(
+      CliConnectionError.ALREADY_AUTHORIZED,
+      'This CLI is already connected to your account.'
+    );
   }
 
   if (status === 'pending') {
-    // Create response using the secret
-    // V1: just the secret, V2: version byte (0) + public key
-    const answerV1 = secretBytes;
+    // Create the response payload
+    // V1: just the secret (32 bytes)
+    // V2: version byte (0) + public key (32 bytes) for future asymmetric key exchange
+    const answerV1 = secretBytes.slice(0, 32);
     const answerV2 = new Uint8Array(1 + 32);
     answerV2[0] = 0; // Version byte
-    // In v2, we'd include the account's public key, but for simplicity use secret
     answerV2.set(secretBytes.slice(0, 32), 1);
 
     const answer = supportsV2 ? answerV2 : answerV1;
 
-    const response = await fetch(`${SERVER_URL}/v1/auth/response`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        publicKey: publicKeyBase64,
-        response: encodeBase64(answer),
-      }),
-    });
+    // CRITICAL: Encrypt the response using the CLI's public key (box encryption)
+    // This ensures only the CLI with the corresponding private key can decrypt it
+    const encryptedResponse = encryptBox(answer, cliPublicKey);
+
+    let response: Response;
+    try {
+      response = await fetch(`${SERVER_URL}/v1/auth/response`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          publicKey: publicKeyBase64,
+          response: encodeBase64(encryptedResponse),
+        }),
+      });
+    } catch {
+      throw new CliApprovalError(
+        CliConnectionError.APPROVAL_FAILED,
+        'Network error while approving connection'
+      );
+    }
 
     if (!response.ok) {
-      throw new Error(`CLI approval failed: ${String(response.status)}`);
+      throw new CliApprovalError(
+        CliConnectionError.APPROVAL_FAILED,
+        `CLI approval failed: ${String(response.status)}`
+      );
     }
   }
 }

@@ -4,6 +4,8 @@
  *
  * Allows users to paste the connection URL/code when
  * camera scanning is not available.
+ *
+ * @see HAP-814 - Implements real key exchange and session establishment
  */
 
 import { ref } from 'vue';
@@ -12,12 +14,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Clipboard, CheckCircle2, AlertCircle, Loader2 } from 'lucide-vue-next';
-import { parseConnectionCode, approveCliConnection, authenticateWithSecretKey } from '@/services/auth';
-import { useAuthStore } from '@/stores/auth';
+import { useAuth } from '@/composables/useAuth';
+import { CliConnectionError } from '@/services/auth';
 import { toast } from 'vue-sonner';
 
 const router = useRouter();
-const authStore = useAuthStore();
+const { connectToCli, authenticateWithSecret, parseQRCode, canApproveConnections } = useAuth();
 
 type ConnectionState = 'input' | 'connecting' | 'success' | 'error';
 type ManualAuthMode = 'cli' | 'secret' | null;
@@ -44,6 +46,10 @@ async function pasteFromClipboard() {
 
 /**
  * Handle form submission
+ *
+ * Performs real authentication:
+ * - If input looks like a CLI connection code, performs key exchange
+ * - Otherwise, attempts to authenticate with it as a secret key
  */
 async function handleSubmit() {
   const rawInput = manualInput.value.trim();
@@ -56,58 +62,72 @@ async function handleSubmit() {
   lastMode.value = null;
   errorMessage.value = null;
 
-  try {
-    let connectionInfo: ReturnType<typeof parseConnectionCode> | null = null;
+  // Try to parse as CLI connection code first
+  const connectionInfo = parseQRCode(rawInput);
 
-    try {
-      connectionInfo = parseConnectionCode(rawInput);
-    } catch {
-      connectionInfo = null;
+  if (connectionInfo) {
+    // This is a CLI connection code - approve the connection
+    lastMode.value = 'cli';
+
+    // Check if we have credentials to approve the connection
+    if (!canApproveConnections.value) {
+      state.value = 'error';
+      errorMessage.value = 'Not authenticated. Please log in first.';
+      toast.error('Not Authenticated', {
+        description: errorMessage.value,
+      });
+      return;
     }
 
-    if (connectionInfo) {
-      lastMode.value = 'cli';
-      // Check if we have credentials to approve the connection
-      if (!authStore.canApproveConnections || !authStore.token || !authStore.secret) {
-        throw new Error('Not authenticated. Please log in first.');
-      }
+    // Perform the real CLI connection with encryption
+    const result = await connectToCli(rawInput);
 
-      // Approve the CLI connection
-      await approveCliConnection(
-        authStore.token,
-        connectionInfo.publicKey,
-        authStore.secret
-      );
-
+    if (result.success) {
       toast.success('CLI Connected!', {
         description: 'The terminal session is now linked to your account',
       });
-    } else {
-      lastMode.value = 'secret';
-      const credentials = await authenticateWithSecretKey(rawInput);
-      authStore.setCredentials(credentials.token, 'temp-account-id');
-      authStore.setSecret(credentials.secret);
+      state.value = 'success';
 
+      setTimeout(() => {
+        router.push('/');
+      }, 2000);
+    } else {
+      state.value = 'error';
+
+      // Set appropriate error message based on error code
+      if (result.errorCode === CliConnectionError.NOT_FOUND) {
+        errorMessage.value = 'Connection code expired. Please generate a new one in the CLI.';
+      } else {
+        errorMessage.value = result.errorMessage ?? 'Failed to connect';
+      }
+
+      toast.error('Connection Failed', {
+        description: errorMessage.value,
+      });
+    }
+  } else {
+    // Try to authenticate with secret key
+    lastMode.value = 'secret';
+
+    const result = await authenticateWithSecret(rawInput);
+
+    if (result.success) {
       toast.success('Authenticated!', {
         description: 'You are now logged in on this browser',
       });
+      state.value = 'success';
+
+      setTimeout(() => {
+        router.push('/');
+      }, 2000);
+    } else {
+      state.value = 'error';
+      errorMessage.value = result.errorMessage ?? 'Invalid secret key';
+
+      toast.error('Authentication Failed', {
+        description: errorMessage.value,
+      });
     }
-
-    state.value = 'success';
-
-    // Redirect to home after success
-    setTimeout(() => {
-      router.push('/');
-    }, 2000);
-  } catch (error) {
-    console.error('[ManualEntry] Connection failed:', error);
-    state.value = 'error';
-    errorMessage.value =
-      error instanceof Error ? error.message : 'Invalid connection code';
-
-    toast.error('Authentication Failed', {
-      description: errorMessage.value,
-    });
   }
 }
 
