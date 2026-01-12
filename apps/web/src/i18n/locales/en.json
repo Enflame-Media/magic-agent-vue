@@ -38,7 +38,8 @@
     "loading": "Loading...",
     "retry": "Retry",
     "on": "on",
-    "undo": "Undo"
+    "undo": "Undo",
+    "optional": "optional"
   },
   "markdown": {
     "codeCopied": "Code copied to clipboard",
@@ -1065,6 +1066,49 @@
     "errorShort": "Error",
     "default": "Voice Assistant",
     "tapToEnd": "Tap to end"
+  },
+  "sharing": {
+    "modal": {
+      "title": "Share Session",
+      "description": "Manage who has access to this session"
+    },
+    "permission": {
+      "placeholder": "Select permission",
+      "viewOnly": "View Only",
+      "viewAndChat": "View & Chat"
+    },
+    "peopleWithAccess": "People with access",
+    "noShares": "No one else has access to this session",
+    "removeAccess": "Remove access",
+    "urlSharing": {
+      "title": "Link Sharing",
+      "description": "Create a shareable link that anyone can use to access this session",
+      "shareableLink": "Shareable Link",
+      "generatingUrl": "Generating link...",
+      "copyUrl": "Copy link",
+      "permission": "Link Permission",
+      "password": "Password Protection",
+      "passwordPlaceholder": "Enter password",
+      "passwordSet": "Password is set",
+      "passwordHint": "Anyone with this link will need the password to access the session",
+      "togglePassword": "Toggle password visibility"
+    },
+    "addPeople": {
+      "title": "Add People",
+      "searchPlaceholder": "Search friends...",
+      "noFriends": "Add friends to share sessions with them",
+      "noResults": "No friends match your search",
+      "or": "or",
+      "emailPlaceholder": "Enter email address",
+      "inviteByEmail": "Invite by Email",
+      "sendInvite": "Send"
+    },
+    "invitations": {
+      "title": "Pending Invitations",
+      "expires": "Expires {date}",
+      "resend": "Resend invitation",
+      "revoke": "Revoke invitation"
+    }
   },
   "welcome": {
     "title": "Codex and Claude Code mobile client",
