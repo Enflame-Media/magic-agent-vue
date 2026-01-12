@@ -14,6 +14,7 @@ import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useSyncStore } from '@/stores/sync';
+import { useUiStore } from '@/stores/ui';
 import { Button } from '@/components/ui/button';
 import { useLocale } from '@/composables/useLocale';
 import {
@@ -24,10 +25,12 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { openUrl } from '@happy-vue/shared';
 
 const router = useRouter();
 const authStore = useAuthStore();
 const syncStore = useSyncStore();
+const ui = useUiStore();
 const { t } = useLocale();
 
 // App version (would come from build config)
@@ -97,16 +100,23 @@ function goBack() {
 }
 
 // External links
+async function handleOpenUrl(url: string) {
+  const result = await openUrl(url);
+  if (!result.success) {
+    ui.error(result.error ?? 'Failed to open link');
+  }
+}
+
 function openPrivacyPolicy() {
-  globalThis.window.open('https://happy.engineering/privacy/', '_blank');
+  void handleOpenUrl('https://happy.engineering/privacy/');
 }
 
 function openTerms() {
-  globalThis.window.open('https://github.com/slopus/happy/blob/main/TERMS.md', '_blank');
+  void handleOpenUrl('https://github.com/slopus/happy/blob/main/TERMS.md');
 }
 
 function openGitHub() {
-  globalThis.window.open('https://github.com/slopus/happy', '_blank');
+  void handleOpenUrl('https://github.com/slopus/happy');
 }
 </script>
 
