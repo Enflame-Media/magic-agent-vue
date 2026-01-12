@@ -57,6 +57,24 @@ export interface FetchVoiceTokenOptions {
 }
 
 /**
+ * Voice access check response from server (HAP-816)
+ */
+export interface VoiceAccessResponse {
+  /** Whether voice access is allowed */
+  allowed: boolean;
+  /** Reason for denied access (only present when allowed is false) */
+  reason?: string;
+}
+
+/**
+ * Options for checking voice access
+ */
+export interface CheckVoiceAccessOptions {
+  /** RevenueCat public key for subscription verification */
+  revenueCatPublicKey?: string;
+}
+
+/**
  * Get the server URL from environment
  */
 function getServerUrl(): string {
@@ -138,18 +156,68 @@ export async function fetchVoiceToken(
  * Check if the user has voice access (without getting a token)
  *
  * This is a lightweight check that doesn't consume an ElevenLabs token.
- * Useful for showing/hiding voice UI elements.
+ * Useful for showing/hiding voice UI elements. Uses GET /v1/voice/access
+ * endpoint which only checks subscription status without issuing tokens.
  *
- * @returns Whether voice access is allowed
+ * @param options - Optional configuration for the access check
+ * @returns Voice access response with allowed status and optional reason
  */
-export async function checkVoiceAccess(): Promise<boolean> {
+export async function checkVoiceAccess(
+  options?: CheckVoiceAccessOptions
+): Promise<VoiceAccessResponse> {
   // In development, always allow
   if (import.meta.env.DEV) {
-    return true;
+    return { allowed: true };
   }
 
-  // TODO: Implement lightweight subscription check
-  // For now, attempt token fetch (will be rate limited)
-  const result = await fetchVoiceToken({ sessionId: 'check' });
-  return result.allowed;
+  const authStore = useAuthStore();
+
+  if (!authStore.isAuthenticated || !authStore.token) {
+    return {
+      allowed: false,
+      reason: 'not_authenticated',
+    };
+  }
+
+  const serverUrl = getServerUrl();
+
+  // Build query string for optional parameters
+  const params = new URLSearchParams();
+  if (options?.revenueCatPublicKey) {
+    params.set('revenueCatPublicKey', options.revenueCatPublicKey);
+  }
+  const queryString = params.toString();
+  const url = `${serverUrl}/v1/voice/access${queryString ? `?${queryString}` : ''}`;
+
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${authStore.token}`,
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        return {
+          allowed: false,
+          reason: 'authentication_expired',
+        };
+      }
+
+      return {
+        allowed: false,
+        reason: `request_failed_${response.status}`,
+      };
+    }
+
+    const data = (await response.json()) as VoiceAccessResponse;
+    return data;
+  } catch (error) {
+    console.error('[apiVoice] Failed to check voice access:', error);
+    return {
+      allowed: false,
+      reason: 'network_error',
+    };
+  }
 }

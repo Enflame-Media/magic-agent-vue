@@ -1,8 +1,9 @@
 <script setup lang="ts">
 /**
- * Voice Settings - Voice Assistant Language Configuration
+ * Voice Settings - Voice Assistant Language Configuration & Access Status
  *
- * Allows users to select their preferred language for voice assistant interactions.
+ * Displays voice trial/subscription status and allows users to select
+ * their preferred language for voice assistant interactions.
  * Integrates with the voice store to persist preferences.
  *
  * Supported languages match ElevenLabs Conversational AI:
@@ -15,18 +16,25 @@
  * - Chinese Simplified (zh-Hans)
  */
 
-import { computed } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { ChevronLeft, Check, Mic } from 'lucide-vue-next';
+import { ChevronLeft, Check, Mic, Loader2, AlertCircle, CheckCircle2, XCircle, Sparkles } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useVoice } from '@/composables/useVoice';
+import { useVoiceAccess } from '@/composables/useVoiceAccess';
+import { usePurchases } from '@/composables/usePurchases';
 import { useLocale } from '@/composables/useLocale';
 import { VOICE_LANGUAGES } from '@/services/voice/config';
 
 const router = useRouter();
 const { voiceLanguage, setVoiceLanguage } = useVoice();
+const { hasAccess, isLoading: isCheckingAccess, error: accessError, checkAccess } = useVoiceAccess();
+const { showPaywall, isPro } = usePurchases();
 const { t } = useLocale();
+
+// Track if we've attempted to check access
+const hasCheckedAccess = ref(false);
 
 /**
  * Voice language options with display names
@@ -57,6 +65,22 @@ const voiceLanguages = computed<VoiceLanguageOption[]>(() => {
   }));
 });
 
+/**
+ * Computed status for display
+ */
+const accessStatus = computed(() => {
+  if (isCheckingAccess.value) {
+    return 'loading';
+  }
+  if (accessError.value) {
+    return 'error';
+  }
+  if (hasAccess.value) {
+    return 'active';
+  }
+  return 'inactive';
+});
+
 function goBack() {
   router.push('/settings');
 }
@@ -64,6 +88,22 @@ function goBack() {
 function selectLanguage(code: string) {
   setVoiceLanguage(code);
 }
+
+function handleUpgrade() {
+  showPaywall('voice_settings');
+}
+
+async function retryAccessCheck() {
+  await checkAccess();
+}
+
+// Check access status on mount
+onMounted(async () => {
+  if (!hasCheckedAccess.value) {
+    hasCheckedAccess.value = true;
+    await checkAccess();
+  }
+});
 </script>
 
 <template>
@@ -78,6 +118,98 @@ function selectLanguage(code: string) {
         <h1 class="text-2xl font-semibold">{{ t('settings.voiceAssistant') }}</h1>
       </div>
     </header>
+
+    <!-- Voice Access Status Card -->
+    <Card class="mb-4">
+      <CardHeader>
+        <CardTitle class="text-base font-medium flex items-center gap-2">
+          {{ t('settingsVoice.accessStatus.title') }}
+        </CardTitle>
+        <CardDescription>
+          {{ t('settingsVoice.accessStatus.description') }}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <!-- Loading State -->
+        <div
+          v-if="accessStatus === 'loading'"
+          class="flex items-center gap-3 p-3 rounded-lg bg-muted/50"
+        >
+          <Loader2 class="h-5 w-5 animate-spin text-muted-foreground" />
+          <span class="text-sm text-muted-foreground">
+            {{ t('settingsVoice.accessStatus.checking') }}
+          </span>
+        </div>
+
+        <!-- Active State -->
+        <div
+          v-else-if="accessStatus === 'active'"
+          class="flex items-center justify-between p-3 rounded-lg bg-green-500/10 dark:bg-green-500/20"
+        >
+          <div class="flex items-center gap-3">
+            <CheckCircle2 class="h-5 w-5 text-green-600 dark:text-green-400" />
+            <div>
+              <p class="font-medium text-green-700 dark:text-green-300">
+                {{ t('settingsVoice.accessStatus.active') }}
+              </p>
+              <p class="text-sm text-green-600/80 dark:text-green-400/80">
+                {{ isPro ? t('settingsVoice.accessStatus.proSubscription') : t('settingsVoice.accessStatus.trialActive') }}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Inactive State -->
+        <div
+          v-else-if="accessStatus === 'inactive'"
+          class="space-y-3"
+        >
+          <div class="flex items-center gap-3 p-3 rounded-lg bg-amber-500/10 dark:bg-amber-500/20">
+            <XCircle class="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            <div class="flex-1">
+              <p class="font-medium text-amber-700 dark:text-amber-300">
+                {{ t('settingsVoice.accessStatus.inactive') }}
+              </p>
+              <p class="text-sm text-amber-600/80 dark:text-amber-400/80">
+                {{ t('settingsVoice.accessStatus.upgradePrompt') }}
+              </p>
+            </div>
+          </div>
+          <Button
+            class="w-full"
+            @click="handleUpgrade"
+          >
+            <Sparkles class="h-4 w-4 mr-2" />
+            {{ t('settingsVoice.accessStatus.upgradeButton') }}
+          </Button>
+        </div>
+
+        <!-- Error State -->
+        <div
+          v-else-if="accessStatus === 'error'"
+          class="space-y-3"
+        >
+          <div class="flex items-center gap-3 p-3 rounded-lg bg-destructive/10">
+            <AlertCircle class="h-5 w-5 text-destructive" />
+            <div class="flex-1">
+              <p class="font-medium text-destructive">
+                {{ t('settingsVoice.accessStatus.error') }}
+              </p>
+              <p class="text-sm text-destructive/80">
+                {{ accessError }}
+              </p>
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            class="w-full"
+            @click="retryAccessCheck"
+          >
+            {{ t('common.retry') }}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
 
     <!-- Language Selection -->
     <Card>

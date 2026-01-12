@@ -903,6 +903,18 @@
       "title": "语言",
       "footer": "{count} 种可用语言",
       "autoDetect": "自动检测"
+    },
+    "accessStatus": {
+      "title": "语音访问",
+      "description": "您当前的语音助手订阅状态。",
+      "checking": "正在检查访问权限...",
+      "active": "语音访问已激活",
+      "inactive": "语音访问未激活",
+      "proSubscription": "包含在您的 Pro 订阅中",
+      "trialActive": "语音试用期有效",
+      "upgradePrompt": "升级到 Pro 以解锁语音助手功能。",
+      "upgradeButton": "升级到 Pro",
+      "error": "无法检查访问状态"
     }
   },
   "settingsNotifications": {

@@ -903,6 +903,18 @@
       "title": "Jezyki",
       "footer": "Dostepny {count} jezyk | Dostepnych {count} jezykow",
       "autoDetect": "Automatyczne wykrywanie"
+    },
+    "accessStatus": {
+      "title": "Dostep do asystenta glosowego",
+      "description": "Twoj aktualny status subskrypcji asystenta glosowego.",
+      "checking": "Sprawdzanie dostepu...",
+      "active": "Dostep glosowy aktywny",
+      "inactive": "Dostep glosowy nieaktywny",
+      "proSubscription": "Wlaczony w subskrypcji Pro",
+      "trialActive": "Okres probny asystenta glosowego jest aktywny",
+      "upgradePrompt": "Przejdz na Pro, aby odblokowac funkcje asystenta glosowego.",
+      "upgradeButton": "Przejdz na Pro",
+      "error": "Nie udalo sie sprawdzic statusu dostepu"
     }
   },
   "settingsNotifications": {

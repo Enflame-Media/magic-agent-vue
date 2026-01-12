@@ -904,6 +904,18 @@
       "title": "Idiomas",
       "autoDetect": "Detectar automaticamente",
       "footer": "{count} idioma disponivel | {count} idiomas disponiveis"
+    },
+    "accessStatus": {
+      "title": "Acesso de voz",
+      "description": "Seu status atual de assinatura do assistente de voz.",
+      "checking": "Verificando acesso...",
+      "active": "Acesso de voz ativo",
+      "inactive": "Acesso de voz inativo",
+      "proSubscription": "Incluido na sua assinatura Pro",
+      "trialActive": "O periodo de teste de voz esta ativo",
+      "upgradePrompt": "Atualize para Pro para desbloquear os recursos do assistente de voz.",
+      "upgradeButton": "Atualizar para Pro",
+      "error": "Nao foi possivel verificar o status de acesso"
     }
   },
   "settingsNotifications": {

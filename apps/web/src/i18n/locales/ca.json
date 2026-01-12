@@ -903,6 +903,18 @@
       "title": "Idiomes",
       "autoDetect": "Detecta automaticament",
       "footer": "{count} idioma disponible | {count} idiomes disponibles"
+    },
+    "accessStatus": {
+      "title": "Acces de veu",
+      "description": "El teu estat actual de subscripcio a l'assistent de veu.",
+      "checking": "Comprovant l'acces...",
+      "active": "Acces de veu actiu",
+      "inactive": "Acces de veu inactiu",
+      "proSubscription": "Inclos amb la teva subscripcio Pro",
+      "trialActive": "El periode de prova de veu esta actiu",
+      "upgradePrompt": "Actualitza a Pro per desbloquejar les funcions de l'assistent de veu.",
+      "upgradeButton": "Actualitza a Pro",
+      "error": "No s'ha pogut comprovar l'estat d'acces"
     }
   },
   "settingsNotifications": {

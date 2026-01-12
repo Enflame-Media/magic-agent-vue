@@ -900,6 +900,18 @@
       "title": "Languages",
       "autoDetect": "Auto-detect",
       "footer": "{count} language available | {count} languages available"
+    },
+    "accessStatus": {
+      "title": "Voice Access",
+      "description": "Your current voice assistant subscription status.",
+      "checking": "Checking access...",
+      "active": "Voice Access Active",
+      "inactive": "Voice Access Inactive",
+      "proSubscription": "Included with your Pro subscription",
+      "trialActive": "Voice trial is active",
+      "upgradePrompt": "Upgrade to Pro to unlock voice assistant features.",
+      "upgradeButton": "Upgrade to Pro",
+      "error": "Unable to check access status"
     }
   },
   "settingsNotifications": {
